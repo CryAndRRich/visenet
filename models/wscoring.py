@@ -31,7 +31,7 @@ def month_end_factors(prices_df: pd.DataFrame) -> pd.DataFrame:
     df = prices_df.copy()
     df["timestamp"] = pd.to_datetime(df["timestamp"])
     df.set_index("timestamp", inplace=True)
-    monthly = df.groupby(["ticker", pd.Grouper(freq="M")]).last().reset_index()
+    monthly = df.groupby(["ticker", pd.Grouper(freq="ME")]).last().reset_index()
     return monthly
 
 monthly_factors_train = month_end_factors(prices_train_df)
@@ -51,7 +51,7 @@ factors_monthly_train = {
 # =========================
 # Lãi suất thị trường hàng tháng
 # =========================
-returns_monthly_train = close_df_train.pct_change().dropna(how="all")
+returns_monthly_train = close_df_train.pct_change(fill_method=None).dropna(how="all")
 market_ret_train = returns_monthly_train.mean(axis=1)
 
 # Số lượng cổ phiếu lưu hành
@@ -233,7 +233,7 @@ print("Optimal weights sau train:", res.x)
 
 def get_top_scores(weights: tuple, 
                    factors: dict, 
-                   top_pct: float = 0.05) -> pd.DataFrame:
+                   top; int = 30) -> pd.DataFrame:
     
     w1, w2, w3 = weights
     mom_df, vol_df, liq_df = factors["MOM"], factors["VOL"], factors["LIQ"]
@@ -257,10 +257,12 @@ def get_top_scores(weights: tuple,
     }).reset_index(names="ticker")
 
     output_df = output_df.sort_values(by="overall_score", ascending=False)
-    k = max(1, int(len(output_df) * top_pct))
+    k = max(1, top)
     top_stocks_df = output_df.head(k).reset_index(drop=True)
     return top_stocks_df
 
 optimal_weights = res.x
-top_stocks_df = get_top_scores(optimal_weights, factors_monthly_train)
-top_stocks_df.to_csv("top_5%_stocks_after_train.csv",index = False)
+top_score_df = get_top_scores(optimal_weights, factors_monthly_train)
+top_score_df.to_csv("top_30_score_after_train.csv", index = False)
+top_stocks_df = prices_df[prices_df["ticker"].isin(top_score_df["ticker"])]
+top_stocks_df.to_csv("top_30_stocks_after_train.csv", index = False)
