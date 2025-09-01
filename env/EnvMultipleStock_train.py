@@ -14,7 +14,7 @@ HMAX_NORMALIZE = 100
 # Lượng tiền ban đầu
 INITIAL_ACCOUNT_BALANCE = 1000000
 # Số luợng cổ phiếu trong danh mục đầu tư
-STOCK_DIM = 43
+STOCK_DIM = 30
 # Phí giao dịch
 TRANSACTION_FEE_PERCENT = 0.001
 REWARD_SCALING = 1e-4
@@ -103,14 +103,14 @@ class StockEnvTrain(gym.Env):
             df_total_value.columns = ["account_value"]
             df_total_value["daily_return"]=df_total_value.pct_change(1)
             
-            # print("total asset: {}".format(self.state[0] + sum(np.array(self.state[1:42]) * np.array(self.state[42:]))))
+            # print("total asset: {}".format(self.state[0] + sum(np.array(self.state[1:29]) * np.array(self.state[29:]))))
             # with open("obs.pkl", "wb") as f:  
             #    pickle.dump(self.state, f)
             
             return self.state, self.reward, self.terminal,{}
 
         else:
-            # print(np.array(self.state[1:42]))
+            # print(np.array(self.state[1:29]))
 
             actions = actions * HMAX_NORMALIZE
             #actions = (actions.astype(int))
@@ -134,7 +134,7 @@ class StockEnvTrain(gym.Env):
             self.day += 1
             self.data = self.df.loc[self.day,:]         
 
-            # print("stock_shares:{}".format(self.state[42:]))
+            # print("stock_shares:{}".format(self.state[29:]))
             self.state =  [self.state[0]] + \
                            self.data.adjcp.values.tolist() + \
                            list(self.state[(STOCK_DIM + 1):(STOCK_DIM * 2 + 1)]) + \

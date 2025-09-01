@@ -14,7 +14,7 @@ HMAX_NORMALIZE = 100
 # Lượng tiền ban đầu
 INITIAL_ACCOUNT_BALANCE = 1000000
 # Số luợng cổ phiếu trong danh mục đầu tư
-STOCK_DIM = 43
+STOCK_DIM = 30
 # Phí giao dịch
 TRANSACTION_FEE_PERCENT = 0.001
 
@@ -143,14 +143,14 @@ class StockEnvTrade(gym.Env):
             df_rewards = pd.DataFrame(self.rewards_memory)
             df_rewards.to_csv("results/account_rewards_trade_{}_{}.csv".format(self.model_name, self.iteration))
             
-            # print("total asset: {}".format(self.state[0] + sum(np.array(self.state[1:42]) * np.array(self.state[42:]))))
+            # print("total asset: {}".format(self.state[0] + sum(np.array(self.state[1:29]) * np.array(self.state[29:]))))
             # with open("obs.pkl", "wb") as f:  
             #     pickle.dump(self.state, f)
             
             return self.state, self.reward, self.terminal,{}
 
         else:
-            # print(np.array(self.state[1:42]))
+            # print(np.array(self.state[1:29]))
 
             actions = actions * HMAX_NORMALIZE
             # actions = (actions.astype(int))
@@ -178,7 +178,7 @@ class StockEnvTrade(gym.Env):
             self.turbulence = self.data["turbulence"].values[0]
             # print(self.turbulence)
             # load next state
-            # print("stock_shares: {}".format(self.state[42:]))
+            # print("stock_shares: {}".format(self.state[29:]))
             self.state = [self.state[0]] + \
                           self.data.adjcp.values.tolist() + \
                           list(self.state[(STOCK_DIM + 1):(STOCK_DIM * 2 + 1)]) + \
