@@ -3,3 +3,4 @@ torchvision
 torchaudio --index-url https://download.pytorch.org/whl/cpu
 stable-baselines3[extra] 
 sb3-contrib
+shimmy>=2.0
