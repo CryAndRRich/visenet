@@ -52,7 +52,7 @@ def preprocess_top30(df, feature_cols, top_n=30):
     df_out = pd.concat(result).sort_values(['timestamp', 'ticker']).reset_index(drop=True)
     df_out.to_csv("top_30_stocks_after_train_processed", index=False)
     return df_out
-file_path = "/visenet/data/output/top_30_stocks_after_train.csv"
+file_path = "visenet/data/output/top_30_stocks_after_train.csv"
 df = pd.read_csv(file_path)
 feature_cols = ['open','high','low','close','vol','liq','rsi','macd','cci','adx','turbulence']
 data_fixed = preprocess_top30(df, feature_cols, top_n=30)
