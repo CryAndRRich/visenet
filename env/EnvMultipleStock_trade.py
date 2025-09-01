@@ -200,48 +200,54 @@ class StockEnvTrade(gym.Env):
         return self.state, self.reward, self.terminal, {}
 
     def reset(self):  
-        if self.initial:
+        self.day = 0
+        self.data = self.df.loc[self.day, :]
+        self.turbulence = 0
+        self.cost = 0
+        self.trades = 0
+        self.terminal = False
+        self.rewards_memory = []
+
+        if self.initial or self.previous_state is None:
+            # Trường hợp khởi tạo mới hoặc không có previous_state
             self.asset_memory = [INITIAL_ACCOUNT_BALANCE]
-            self.day = 0
-            self.data = self.df.loc[self.day,:]
-            self.turbulence = 0
-            self.cost = 0
-            self.trades = 0
-            self.terminal = False 
-            # self.iteration = self.iteration
-            self.rewards_memory = []
-            
             self.state = [INITIAL_ACCOUNT_BALANCE] + \
                           self.data.close.values.tolist() + \
                           [0] * STOCK_DIM + \
                           self.data.macd.values.tolist() + \
-                          self.data.rsi.values.tolist()  + \
-                          self.data.cci.values.tolist()  + \
-                          self.data.adx.values.tolist() 
+                          self.data.rsi.values.tolist() + \
+                          self.data.cci.values.tolist() + \
+                          self.data.adx.values.tolist()
         else:
-            previous_total_asset = self.previous_state[0] + sum(np.array(self.previous_state[1:(STOCK_DIM + 1)]) * np.array(self.previous_state[(STOCK_DIM + 1):(STOCK_DIM * 2 + 1)]))
-            self.asset_memory = [previous_total_asset]
-            # self.asset_memory = [self.previous_state[0]]
-            self.day = 0
-            self.data = self.df.loc[self.day,:]
-            self.turbulence = 0
-            self.cost = 0
-            self.trades = 0
-            self.terminal = False 
-            # self.iteration=iteration
-            self.rewards_memory = []
-            # self.previous_state[(STOCK_DIM + 1):(STOCK_DIM * 2 + 1)]
+            try:
+                previous_total_asset = (
+                    self.previous_state[0] +
+                    sum(
+                        np.array(self.previous_state[1:(STOCK_DIM + 1)]) *
+                        np.array(self.previous_state[(STOCK_DIM + 1):(STOCK_DIM * 2 + 1)])
+                    )
+                )
+                self.asset_memory = [previous_total_asset]
+                self.state = [self.previous_state[0]] + \
+                              self.data.close.values.tolist() + \
+                              self.previous_state[(STOCK_DIM + 1):(STOCK_DIM * 2 + 1)] + \
+                              self.data.macd.values.tolist() + \
+                              self.data.rsi.values.tolist() + \
+                              self.data.cci.values.tolist() + \
+                              self.data.adx.values.tolist()
+            except Exception as e:
+                print(f"[WARN] previous_state không hợp lệ, reset lại từ đầu. Chi tiết: {e}")
+                self.asset_memory = [INITIAL_ACCOUNT_BALANCE]
+                self.state = [INITIAL_ACCOUNT_BALANCE] + \
+                              self.data.close.values.tolist() + \
+                              [0] * STOCK_DIM + \
+                              self.data.macd.values.tolist() + \
+                              self.data.rsi.values.tolist() + \
+                              self.data.cci.values.tolist() + \
+                              self.data.adx.values.tolist()
 
-            self.state = [self.previous_state[0]] + \
-                          self.data.close.values.tolist() + \
-                          self.previous_state[(STOCK_DIM + 1):(STOCK_DIM * 2 + 1)] + \
-                          self.data.macd.values.tolist() + \
-                          self.data.rsi.values.tolist()  + \
-                          self.data.cci.values.tolist()  + \
-                          self.data.adx.values.tolist() 
-            
         return self.state
-    
+
     def render(self):
         return self.state
 
