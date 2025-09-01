@@ -1,11 +1,23 @@
-import os
+# common library
 import pandas as pd
+import numpy as np
+import time
+import os
+from stable_baselines3.common.vec_env import DummyVecEnv
+# preprocessor
+from preprocess import *
+# config
+from config.config import *
+# model
+from model.models import *
 def run_model() -> None:
     """Train the model."""
     os.makedirs("visenet/results", exist_ok=True)
     # read and preprocess data
-    preprocessed_path = "/content/top_30_stocks_after_train_processed.csv"
-    data = pd.read_csv(preprocessed_path)
+    file_path = "visenet/data/output/top_30_stocks_after_train.csv"
+    df = pd.read_csv(file_path)
+    feature_cols = ['open','high','low','close','vol','liq','rsi','macd','cci','adx','turbulence']
+    data = preprocess_top30(df, feature_cols, top_n=30)
     # 2024/01/01 is the date that validation starts
     # 2025/01/01 is the date that real trading starts
     # unique_trade_date needs to start from 2015/10/01 for validation purpose
