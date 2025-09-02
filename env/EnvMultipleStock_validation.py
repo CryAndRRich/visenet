@@ -114,7 +114,7 @@ class StockEnvValidation(gym.Env):
         # print(actions)
 
         if self.terminal:
-            plt.plot(self.asset_memory,"r")
+            plt.plot(self.asset_memory, "r")
             plt.savefig("results/account_value_validation_{}.png".format(self.iteration))
             plt.close()
             df_total_value = pd.DataFrame(self.asset_memory)

@@ -45,9 +45,9 @@ class StockEnvTrade(gym.Env):
         
         self.action_space = spaces.Box(low = -1, high = 1,shape = (STOCK_DIM,)) 
 
-        # Số chiều = 259 = [Luoợng tiền hiện có] + [Giá đóng cửa điều chỉnh của 43 cổ phiếu] + 
-        # [Số cổ phiếu đang sở hữu của 43 cổ phiếu] + [MACD của 43 cổ phiếu] + [RSI của 43 cổ phiếu] + 
-        # [CCI của 43 cổ phiếu] + [ADX của 43 cổ phiếu]
+        # Số chiều = 181 = [Luoợng tiền hiện có] + [Giá đóng cửa điều chỉnh của 30 cổ phiếu] + 
+        # [Số cổ phiếu đang sở hữu của 30 cổ phiếu] + [MACD của 30 cổ phiếu] + [RSI của 30 cổ phiếu] + 
+        # [CCI của 30 cổ phiếu] + [ADX của 30 cổ phiếu]
         self.observation_space = spaces.Box(low=0, high=np.inf, shape=(181,))
 
         # Load dữ liệu

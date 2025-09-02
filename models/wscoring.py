@@ -4,27 +4,6 @@ import statsmodels.api as sm
 from scipy.optimize import minimize
 
 # =========================
-# Load data
-# =========================
-prices_df = pd.read_csv("clean_data_1029_tickers_29_11_2018_to_29_8_2025.csv", parse_dates=["timestamp"])
-shares_df = pd.read_csv("outstanding_shares.csv")
-
-# Tập train
-train_end_date = "2023-12-31"
-prices_train_df = prices_df[prices_df["timestamp"] <= train_end_date].copy()
-
-# Lọc ticker xuất hiện trong cả hai tập
-common_tickers = set(prices_train_df["ticker"]).intersection(set(shares_df["ticker"]))
-prices_train_df = prices_train_df[prices_train_df["ticker"].isin(common_tickers)]
-shares_df = shares_df[shares_df["ticker"].isin(common_tickers)]
-
-# Tập test
-test_start_date = "2024-01-01"
-prices_test_df = prices_df[prices_df["timestamp"] >= test_start_date].copy()
-prices_test_df = prices_test_df[prices_test_df["ticker"].isin(common_tickers)]
-
-
-# =========================
 # Tính các yếu tố hàng tháng
 # =========================
 def month_end_factors(prices_df: pd.DataFrame) -> pd.DataFrame:
@@ -33,29 +12,6 @@ def month_end_factors(prices_df: pd.DataFrame) -> pd.DataFrame:
     df.set_index("timestamp", inplace=True)
     monthly = df.groupby(["ticker", pd.Grouper(freq="ME")]).last().reset_index()
     return monthly
-
-monthly_factors_train = month_end_factors(prices_train_df)
-
-# Pivot các factor
-momentum_df_train = monthly_factors_train.pivot(index="timestamp", columns="ticker", values="rsi")
-volatility_df_train = monthly_factors_train.pivot(index="timestamp", columns="ticker", values="vol")
-liquidity_df_train = monthly_factors_train.pivot(index="timestamp", columns="ticker", values="liq")
-close_df_train = monthly_factors_train.pivot(index="timestamp", columns="ticker", values="close")
-
-factors_monthly_train = {
-    "MOM": momentum_df_train, 
-    "VOL": volatility_df_train, 
-    "LIQ": liquidity_df_train
-}
-
-# =========================
-# Lãi suất thị trường hàng tháng
-# =========================
-returns_monthly_train = close_df_train.pct_change(fill_method=None).dropna(how="all")
-market_ret_train = returns_monthly_train.mean(axis=1)
-
-# Số lượng cổ phiếu lưu hành
-shares_map = shares_df.set_index("ticker")["outstanding_share"]
 
 # =========================
 # Sap xếp và tính lợi nhuận danh mục
@@ -131,34 +87,6 @@ def estimate_alpha_beta(port_ret: pd.Series,
     alpha, beta = model.params
     return alpha, beta
 
-# =========================
-# Mô hình với các tổ hợp trọng số khác nhau
-# =========================
-mixes = [
-    (1, 0, 0), (0,1, 0), (0, 0,1),
-    (1/2, 1/2, 0), (1/2, 0, 1/2), (0, 1/2, 1/2),
-    (1/3, 1/3, 1/3)
-]
-
-results = []
-for w in mixes:
-    dfp = portfolio_returns(w, factors_monthly_train, close_df_train, shares_map)
-    if dfp.empty: 
-        continue
-    alpha, beta = estimate_alpha_beta(dfp["ret"], market_ret_train)
-    mv_stat = np.log(dfp["MV"]).mean()
-
-    results.append({
-        "w1": w[0],
-        "w2": w[1],
-        "w3": w[2],
-        "alpha": alpha, 
-        "beta": beta, 
-        "logMV": mv_stat
-    })
-
-results_df = pd.DataFrame(results)
-print("Regression Data:\n", results_df)
 
 # =========================
 # Fit regression
@@ -172,13 +100,6 @@ def build_features(df: pd.DataFrame) -> pd.DataFrame:
         w1 * w2 * w3
     ])
     return sm.add_constant(X)
-
-X = build_features(results_df)
-y_alpha, y_beta, y_mv = results_df["alpha"], results_df["beta"], results_df["logMV"]
-
-model_alpha = sm.OLS(y_alpha, X).fit()
-model_beta = sm.OLS(y_beta, X).fit()
-model_mv = sm.OLS(y_mv, X).fit()
 
 # =========================
 # Tối ưu trọng số
@@ -197,40 +118,14 @@ def predict(models: dict,
     f_mv = np.dot(models["mv"].params, feats)
     return f_alpha, f_beta, f_mv
 
-models = {
-    "alpha": model_alpha, 
-    "beta": model_beta, 
-    "mv": model_mv
-}
-
-beta_star = results_df["beta"].median()
-mv_star = results_df["logMV"].median()
-
 def objective(w: tuple) -> float:
     f_alpha, _, _ = predict(models, w)
     return -f_alpha
 
-cons = [
-    {
-        "type": "eq", 
-        "fun": lambda w: np.sum(w) - 1
-    }, {
-        "type": "ineq", 
-        "fun": lambda w: beta_star - predict(models, w)[1]
-    }, {
-        "type": "ineq", 
-        "fun": lambda w: predict(models, w)[2] - mv_star
-    }
-]
-bnds = [(0, 1)] * 3
-
-res = minimize(objective, x0=[1/3, 1/3, 1/3], bounds=bnds, constraints=cons)
-print("Optimal weights sau train:", res.x)
 
 # =========================
-# Chọn top 5% với trọng số tối ưu
+# Chọn top 30 với trọng số tối ưu
 # =========================
-
 def get_top_scores(weights: tuple, 
                    factors: dict, 
                    top; int = 30) -> pd.DataFrame:
@@ -261,8 +156,214 @@ def get_top_scores(weights: tuple,
     top_stocks_df = output_df.head(k).reset_index(drop=True)
     return top_stocks_df
 
-optimal_weights = res.x
-top_score_df = get_top_scores(optimal_weights, factors_monthly_train)
-top_score_df.to_csv("top_30_score_after_train.csv", index = False)
-top_stocks_df = prices_df[prices_df["ticker"].isin(top_score_df["ticker"])]
-top_stocks_df.to_csv("top_30_stocks_after_train.csv", index = False)
+
+def preprocess_top30(df, top_n=30):
+    """
+    Chuẩn hóa data sao cho mỗi ngày có đúng top_n tickers.
+    Nếu ngày nào thiếu thì fill từ ngày gần nhất (trước hoặc sau)
+    """
+    result = []
+    all_dates = sorted(df["timestamp"].unique())
+    
+    for i, date in enumerate(all_dates):
+        top_df = df[df["timestamp"] == date]
+        
+        # Nếu đủ top_n 
+        if len(top_df) == top_n:
+            result.append(top_df)
+        else:
+            # Cần bổ sung thêm
+            missing = top_n - len(top_df)
+            # Tìm ngày gần nhất có data đủ
+            j = i - 1
+            filled = []
+            while j >= 0 and len(filled) < missing:
+                prev_day = result[j]  # đã được chuẩn hóa từ trước
+                # lấy ticker chưa có trong ngày hiện tại
+                candidates = prev_day[~prev_day["ticker"].isin(top_df["ticker"])]
+                needed = candidates.head(missing - len(filled))
+                filled.append(needed)
+                j -= 1
+            # nếu vẫn chưa đủ thì lấy từ ngày sau
+            if len(filled) < missing:
+                k = i + 1
+                while k < len(all_dates) and len(filled) < missing:
+                    next_day = df[df["timestamp"] == all_dates[k]].nlargest(top_n, "vol")
+                    candidates = next_day[~next_day["ticker"].isin(top_df["ticker"])]
+                    needed = candidates.head(missing - len(filled))
+                    filled.append(needed)
+                    k += 1
+            # gộp lại
+            filled_df = pd.concat(filled) if filled else pd.DataFrame(columns=top_df.columns)
+            final_day = pd.concat([top_df, filled_df]).head(top_n)
+            final_day["timestamp"] = date  # đảm bảo timestamp đúng
+            result.append(final_day)
+    
+    df_out = pd.concat(result).sort_values(["timestamp", "ticker"]).reset_index(drop=True)
+    return df_out
+
+
+# =========================
+# Tính toán turbulence
+# =========================
+def add_turbulence(df):
+    """Thêm chỉ số turbulence"""
+    turbulence_index = calcualte_turbulence(df)
+    df = df.merge(turbulence_index, on="timestamp")
+    df = df.sort_values(["timestamp", "ticker"]).reset_index(drop=True)
+    return df
+
+
+def calcualte_turbulence(df):
+    """Tính chỉ số turbulence"""
+    df_price_pivot = df.pivot(index="timestamp", columns="ticker", values="close")
+    unique_date = df.timestamp.unique()
+
+    # Bắt đầu sau một năm
+    start = 252
+    turbulence_index = [0] * start
+    count = 0
+    for i in range(start, len(unique_date)):
+        current_price = df_price_pivot[df_price_pivot.index == unique_date[i]]
+        hist_price = df_price_pivot[[n in unique_date[0:i] for n in df_price_pivot.index ]]
+        cov_temp = hist_price.cov()
+        current_temp = (current_price - np.mean(hist_price, axis=0))
+        temp = current_temp.values.dot(np.linalg.inv(cov_temp)).dot(current_temp.values.T)
+        if temp > 0:
+            count += 1
+            if count > 2:
+                turbulence_temp = temp[0][0]
+            else:
+                # Tránh outlier lớn
+                turbulence_temp = 0
+        else:
+            turbulence_temp = 0
+        turbulence_index.append(turbulence_temp)
+
+    turbulence_index = pd.DataFrame({"timestamp": df_price_pivot.index,
+                                     "turbulence": turbulence_index})
+    return turbulence_index
+
+
+if __name__ == "__main__":
+    # =========================
+    # Load data
+    # =========================
+    prices_df = pd.read_csv("clean_data_1029_tickers_29_11_2018_to_29_8_2025.csv", parse_dates=["timestamp"])
+    shares_df = pd.read_csv("outstanding_shares.csv")
+
+    # Tập train
+    train_end_date = "2023-12-31"
+    prices_train_df = prices_df[prices_df["timestamp"] <= train_end_date].copy()
+
+    # Lọc ticker xuất hiện trong cả hai tập
+    common_tickers = set(prices_train_df["ticker"]).intersection(set(shares_df["ticker"]))
+    prices_train_df = prices_train_df[prices_train_df["ticker"].isin(common_tickers)]
+    shares_df = shares_df[shares_df["ticker"].isin(common_tickers)]
+
+    # Tập test
+    test_start_date = "2024-01-01"
+    prices_test_df = prices_df[prices_df["timestamp"] >= test_start_date].copy()
+    prices_test_df = prices_test_df[prices_test_df["ticker"].isin(common_tickers)]
+
+    monthly_factors_train = month_end_factors(prices_train_df)
+
+    # Pivot các factor
+    momentum_df_train = monthly_factors_train.pivot(index="timestamp", columns="ticker", values="rsi")
+    volatility_df_train = monthly_factors_train.pivot(index="timestamp", columns="ticker", values="vol")
+    liquidity_df_train = monthly_factors_train.pivot(index="timestamp", columns="ticker", values="liq")
+    close_df_train = monthly_factors_train.pivot(index="timestamp", columns="ticker", values="close")
+
+    factors_monthly_train = {
+        "MOM": momentum_df_train, 
+        "VOL": volatility_df_train, 
+        "LIQ": liquidity_df_train
+    }
+
+    # =========================
+    # Lãi suất thị trường hàng tháng
+    # =========================
+    returns_monthly_train = close_df_train.pct_change(fill_method=None).dropna(how="all")
+    market_ret_train = returns_monthly_train.mean(axis=1)
+
+    # Số lượng cổ phiếu lưu hành
+    shares_map = shares_df.set_index("ticker")["outstanding_share"]
+
+    # =========================
+    # Mô hình với các tổ hợp trọng số khác nhau
+    # =========================
+    mixes = [
+        (1, 0, 0), (0,1, 0), (0, 0,1),
+        (1/2, 1/2, 0), (1/2, 0, 1/2), (0, 1/2, 1/2),
+        (1/3, 1/3, 1/3)
+    ]
+
+    results = []
+    for w in mixes:
+        dfp = portfolio_returns(w, factors_monthly_train, close_df_train, shares_map)
+        if dfp.empty: 
+            continue
+        alpha, beta = estimate_alpha_beta(dfp["ret"], market_ret_train)
+        mv_stat = np.log(dfp["MV"]).mean()
+
+        results.append({
+            "w1": w[0],
+            "w2": w[1],
+            "w3": w[2],
+            "alpha": alpha, 
+            "beta": beta, 
+            "logMV": mv_stat
+        })
+
+    results_df = pd.DataFrame(results)
+    print("Regression Data:\n", results_df)
+
+    X = build_features(results_df)
+    y_alpha, y_beta, y_mv = results_df["alpha"], results_df["beta"], results_df["logMV"]
+
+    model_alpha = sm.OLS(y_alpha, X).fit()
+    model_beta = sm.OLS(y_beta, X).fit()
+    model_mv = sm.OLS(y_mv, X).fit()
+
+    models = {
+        "alpha": model_alpha, 
+        "beta": model_beta, 
+        "mv": model_mv
+    }
+
+    beta_star = results_df["beta"].median()
+    mv_star = results_df["logMV"].median()
+
+    cons = [
+        {
+            "type": "eq", 
+            "fun": lambda w: np.sum(w) - 1
+        }, {
+            "type": "ineq", 
+            "fun": lambda w: beta_star - predict(models, w)[1]
+        }, {
+            "type": "ineq", 
+            "fun": lambda w: predict(models, w)[2] - mv_star
+        }
+    ]
+    bnds = [(0, 1)] * 3
+
+    res = minimize(objective, x0=[1/3, 1/3, 1/3], bounds=bnds, constraints=cons)
+    print("Optimal weights sau train:", res.x)
+
+    optimal_weights = res.x
+
+    top_score_df = get_top_scores(optimal_weights, factors_monthly_train)
+    top_score_df.to_csv("top_30_score_after_train.csv", index = False)
+    
+    top_stocks_df = prices_df[prices_df["ticker"].isin(top_score_df["ticker"])]
+
+    # Đổi định dạng ngày tháng
+    top_stocks_df["timestamp"] = pd.to_datetime(top_stocks_df["timestamp"])
+    top_stocks_df["timestamp"] = top_stocks_df["timestamp"].dt.strftime("%Y%m%d")
+    
+    # Thêm turbulence
+    top_stocks_df = add_turbulence(top_stocks_df)
+
+    top_stocks_df = preprocess_top30(top_stocks_df, top_n=30)
+    top_stocks_df.to_csv("top_30_stocks_after_train.csv", index = False)

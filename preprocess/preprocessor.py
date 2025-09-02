@@ -13,9 +13,6 @@ password = "PASSWORD"
 client = FiinSession(username=username, password=password).login()
 fi = client.FiinIndicator()
 
-# Đọc dữ liệu từ file CSV
-data = pd.read_csv('data/raw_data_all_tickers_1d_30_8_2018_to_30_8_2025.csv')
-
 def compute_indicators(grp: pd.DataFrame) -> pd.DataFrame:
     """Tính các chỉ số kỹ thuật cho từng nhóm mã chứng khoán"""
     grp = grp.reset_index(drop=True)
@@ -53,16 +50,28 @@ def compute_indicators(grp: pd.DataFrame) -> pd.DataFrame:
 
     return grp
 
-# Áp dụng hàm tính chỉ số kỹ thuật cho từng mã chứng khoán
-data = data.groupby("ticker", group_keys=False).apply(compute_indicators)
+def data_split(df, start, end):
+    """Tách dữ liệu thành tập huấn luyện hoặc kiểm tra dựa trên ngày tháng"""
+    data = df[(df.timestamp >= start) & (df.timestamp < end)]
+    data=data.sort_values(['timestamp', 'ticker'], ignore_index=True)
+    data.index = data.timestamp.factorize()[0]
+    return data
 
-# Loại bỏ các cột không cần thiết và các dòng có giá trị NaN
-data.drop(columns=['volume', 'bu', 'sd', 'fb', 'fs', 'fn', 'log_return', 'prev_close', 'tr'], inplace = True)
-data = data.dropna()
 
-# Lọc các mã chứng khoán có ít nhất 1500 ngày giao dịch
-counts = data['ticker'].value_counts()
-data = data[data['ticker'].isin(counts[counts >= 1500].index)]
+if __name__ == "__main__":
+    # Đọc dữ liệu từ file CSV
+    data = pd.read_csv('data/raw_data_all_tickers_1d_30_8_2018_to_30_8_2025.csv')
 
-# Lưu dữ liệu vào file CSV
-data.to_csv("data/clean_data_1029_tickers_29_11_2018_to_29_8_2025.csv", index=False)
+    # Áp dụng hàm tính chỉ số kỹ thuật cho từng mã chứng khoán
+    data = data.groupby("ticker", group_keys=False).apply(compute_indicators)
+
+    # Loại bỏ các cột không cần thiết và các dòng có giá trị NaN
+    data.drop(columns=['volume', 'bu', 'sd', 'fb', 'fs', 'fn', 'log_return', 'prev_close', 'tr'], inplace = True)
+    data = data.dropna()
+
+    # Lọc các mã chứng khoán có ít nhất 1500 ngày giao dịch
+    counts = data['ticker'].value_counts()
+    data = data[data['ticker'].isin(counts[counts >= 1500].index)]
+
+    # Lưu dữ liệu vào file CSV
+    data.to_csv("data/clean_data_1029_tickers_29_11_2018_to_29_8_2025.csv", index=False)
