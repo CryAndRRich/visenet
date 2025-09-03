@@ -9,6 +9,7 @@ def analyze_portfolio(df: pd.DataFrame) -> tuple:
     - Annualized volatility
     - Sharpe ratio
     - Max drawdown
+    - Win rate
     """
     account_value = df["account_value"].reset_index(drop=True)
     
@@ -33,4 +34,7 @@ def analyze_portfolio(df: pd.DataFrame) -> tuple:
     drawdown = (account_value - cummax) / cummax
     max_drawdown = drawdown.min()
     
-    return cumulative_return, annualized_return, annualized_volatility, sharpe_ratio, max_drawdown
+    # Win rate (tỷ lệ số ngày return > 0)
+    win_rate = (returns > 0).mean() if N > 0 else np.nan
+
+    return cumulative_return, annualized_return, annualized_volatility, sharpe_ratio, max_drawdown, win_rate
