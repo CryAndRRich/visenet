@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import time
-import gym
 
 # ================================================================
 # Mô hình DRL
@@ -18,7 +17,7 @@ from env.EnvMultipleStock_train import StockEnvTrain
 from env.EnvMultipleStock_validation import StockEnvValidation
 from env.EnvMultipleStock_trade import StockEnvTrade
 from config import config
-from preprocess.data_split import data_split
+from preprocess.preprocessor import data_split
 
 
 # ================================================================
@@ -136,7 +135,7 @@ def run_ensemble_strategy(df, unique_trade_date, rebalance_window, validation_wi
         else:
             initial = False
 
-        # set turbulence threshold
+        # turbulence threshold
         end_date_index = df.index[df["timestamp"] == unique_trade_date[i - rebalance_window - validation_window]].to_list()[-1]
         print(df.index[df["timestamp"] == unique_trade_date[i - rebalance_window - validation_window]].to_list())
         end_date_index = int(end_date_index)

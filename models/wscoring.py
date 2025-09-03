@@ -128,7 +128,7 @@ def objective(w: tuple) -> float:
 # =========================
 def get_top_scores(weights: tuple, 
                    factors: dict, 
-                   top; int = 30) -> pd.DataFrame:
+                   top: int = 30) -> pd.DataFrame:
     
     w1, w2, w3 = weights
     mom_df, vol_df, liq_df = factors["MOM"], factors["VOL"], factors["LIQ"]
