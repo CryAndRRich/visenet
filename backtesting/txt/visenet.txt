@@ -1,0 +1,93 @@
+======A2C Training========
+Training time (A2C):  1.3994225104649862  minutes
+A2C Sharpe Ratio:  0.3143443451496732
+======PPO Training========
+Training time (PPO):  4.293164483706156  minutes
+PPO Sharpe Ratio:  0.10368742068369263
+======TD3 Training========
+Training time (TD3):  6.540156702200572  minutes
+TD3 Sharpe Ratio:  0.30245662066653434
+======Trading from:  20240405 to  20240709
+previous_total_asset: 1000000
+end_total_asset: 1033787.2472019703
+total_reward: 33787.24720197031
+total_cost:  2223.805102745839
+total trades:  982
+Sharpe:  0.11546593171039586
+============================================
+[41160, 41161, 41162, 41163, 41164, 41165, 41166, 41167, 41168, 41169, 41170, 41171, 41172, 41173, 41174, 41175, 41176, 41177, 41178, 41179, 41180, 41181, 41182, 41183, 41184, 41185, 41186, 41187, 41188, 41189]
+turbulence_threshold:  289.5317758225865
+======A2C Training========
+Training time (A2C):  1.4090196768442789  minutes
+A2C Sharpe Ratio:  0.0006446320945584595
+======PPO Training========
+Training time (PPO):  4.240950612227122  minutes
+PPO Sharpe Ratio:  -0.7249628103396681
+======TD3 Training========
+Training time (TD3):  6.61533952554067  minutes
+TD3 Sharpe Ratio:  0.10958998757895021
+======Trading from:  20240709 to  20241008
+previous_total_asset: 1033787.2472019703
+end_total_asset: 1021566.1541627331
+total_reward: -12221.093039237196
+total_cost:  0.0
+total trades:  1054
+Sharpe:  -0.019779899841304585
+============================================
+[43050, 43051, 43052, 43053, 43054, 43055, 43056, 43057, 43058, 43059, 43060, 43061, 43062, 43063, 43064, 43065, 43066, 43067, 43068, 43069, 43070, 43071, 43072, 43073, 43074, 43075, 43076, 43077, 43078, 43079]
+turbulence_threshold:  289.5317758225865
+======A2C Training========
+Training time (A2C):  1.3913861393928528  minutes
+A2C Sharpe Ratio:  -0.18071774099223747
+======PPO Training========
+Training time (PPO):  4.255435029665629  minutes
+PPO Sharpe Ratio:  -0.36837420871197923
+======TD3 Training========
+Training time (TD3):  6.564013270537059  minutes
+TD3 Sharpe Ratio:  -0.18391699077131762
+======Trading from:  20241008 to  20250106
+previous_total_asset: 1021566.1541627331
+end_total_asset: 993733.86460625
+total_reward: -27832.289556483156
+total_cost:  6358.1226
+total trades:  1089
+Sharpe:  -0.11026389480938649
+============================================
+[44940, 44941, 44942, 44943, 44944, 44945, 44946, 44947, 44948, 44949, 44950, 44951, 44952, 44953, 44954, 44955, 44956, 44957, 44958, 44959, 44960, 44961, 44962, 44963, 44964, 44965, 44966, 44967, 44968, 44969]
+turbulence_threshold:  289.5317758225865
+======A2C Training========
+Training time (A2C):  1.4046669324239096  minutes
+A2C Sharpe Ratio:  0.06526623944064576
+======PPO Training========
+Training time (PPO):  4.290662590662638  minutes
+PPO Sharpe Ratio:  -0.19538074796320443
+======TD3 Training========
+Training time (TD3):  6.5640443682670595  minutes
+TD3 Sharpe Ratio:  -0.031820265301161
+======Trading from:  20250106 to  20250411
+previous_total_asset: 993733.86460625
+end_total_asset: 1044028.0657650001
+total_reward: 50294.201158750104
+total_cost:  143.11165
+total trades:  780
+Sharpe:  0.1324236092969825
+============================================
+[46830, 46831, 46832, 46833, 46834, 46835, 46836, 46837, 46838, 46839, 46840, 46841, 46842, 46843, 46844, 46845, 46846, 46847, 46848, 46849, 46850, 46851, 46852, 46853, 46854, 46855, 46856, 46857, 46858, 46859]
+turbulence_threshold:  289.5317758225865
+======A2C Training========
+Training time (A2C):  1.4058732271194458  minutes
+A2C Sharpe Ratio:  0.5785673751699403
+======PPO Training========
+Training time (PPO):  4.34198944568634  minutes
+PPO Sharpe Ratio:  -0.23532036989139835
+======TD3 Training========
+Training time (TD3):  6.540973428885142  minutes
+TD3 Sharpe Ratio:  -0.011581683593040798
+======Trading from:  20250411 to  20250714
+previous_total_asset: 1044028.0657650001
+end_total_asset: 1453218.69921875
+total_reward: 409190.633454
+total_cost:  3910.6892
+total trades:  802
+Sharpe:  0.4669219390395922
+Ensemble Strategy took:  61.33148408333461  minutes

@@ -1,0 +1,57 @@
+============Start TD3 Strategy============
+============================================
+turbulence_threshold:  289.5317758225865
+======TD3 Training========
+TD3 Sharpe Ratio:  0.36849335319216986
+======Trading from:  20240405 to  20240709
+previous_total_asset: 1000000
+end_total_asset: 1173683.241635899
+total_reward: 173683.24163589906
+total_cost:  2019.0247417190121
+total trades:  919
+Sharpe:  0.2252373879240581
+============================================
+turbulence_threshold:  289.5317758225865
+======TD3 Training========
+TD3 Sharpe Ratio:  0.10958998757895021
+======Trading from:  20240709 to  20241008
+previous_total_asset: 1173683.241635899
+end_total_asset: 1136394.276130242
+total_reward: -37288.96550565702
+total_cost:  1172.4986948960393
+total trades:  745
+Sharpe:  -0.08424959524361578
+============================================
+turbulence_threshold:  289.5317758225865
+======TD3 Training========
+TD3 Sharpe Ratio:  -0.18391699077131762
+======Trading from:  20241008 to  20250106
+previous_total_asset: 1136394.276130242
+end_total_asset: 1157406.7767716767
+total_reward: 21012.500641434686
+total_cost:  29.03905
+total trades:  1179
+Sharpe:  0.0753840787566658
+============================================
+turbulence_threshold:  289.5317758225865
+======TD3 Training========
+TD3 Sharpe Ratio:  0.1263592846917156
+======Trading from:  20250106 to  20250411
+previous_total_asset: 1157406.7767716767
+end_total_asset: 1155927.2489494039
+total_reward: -1479.527822272852
+total_cost:  1110.2867899999999
+total trades:  869
+Sharpe:  0.008596239898043485
+============================================
+turbulence_threshold:  289.5317758225865
+======TD3 Training========
+TD3 Sharpe Ratio:  0.15042669831038324
+======Trading from:  20250411 to  20250714
+previous_total_asset: 1155927.2489494039
+end_total_asset: 1160223.3912264237
+total_reward: 4296.142277019797
+total_cost:  1076.68474298
+total trades:  932
+Sharpe:  0.022802243769426436
+TD3 Strategy took:  31.79782564640045  minutes

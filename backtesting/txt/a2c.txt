@@ -1,0 +1,62 @@
+============Start A2C Strategy============
+============================================
+turbulence_threshold:  289.5317758225865
+======A2C Training========
+Training time (A2C):  1.794075564543406  minutes
+A2C Sharpe Ratio:  -0.06584488797829564
+======Trading from:  20240405 to  20240709
+previous_total_asset: 1000000
+end_total_asset: 1102120.96153125
+total_reward: 102120.96153125004
+total_cost:  10642.233
+total trades:  940
+Sharpe:  0.22555267891033573
+============================================
+turbulence_threshold:  289.5317758225865
+======A2C Training========
+Training time (A2C):  1.789150853951772  minutes
+A2C Sharpe Ratio:  0.1184227687094901
+======Trading from:  20240709 to  20241008
+previous_total_asset: 1102120.96153125
+end_total_asset: 1030812.0540021952
+total_reward: -71308.90752905479
+total_cost:  1087.0891
+total trades:  780
+Sharpe:  -0.18837885118193343
+============================================
+turbulence_threshold:  289.5317758225865
+======A2C Training========
+Training time (A2C):  1.8082391937573752  minutes
+A2C Sharpe Ratio:  -0.18391699077131762
+======Trading from:  20241008 to  20250106
+previous_total_asset: 1030812.0540021952
+end_total_asset: 1050660.6934225
+total_reward: 19848.639420304797
+total_cost:  0.0
+total trades:  990
+Sharpe:  0.07715681430633639
+============================================
+turbulence_threshold:  289.5317758225865
+======A2C Training========
+Training time (A2C):  1.7734170436859131  minutes
+A2C Sharpe Ratio:  0.05498968516132469
+======Trading from:  20250106 to  20250411
+previous_total_asset: 1050660.6934225
+end_total_asset: 1037584.29864375
+total_reward: -13076.394778750022
+total_cost:  1041.2537
+total trades:  890
+Sharpe:  -0.020158898011099213
+============================================
+turbulence_threshold:  289.5317758225865
+======A2C Training========
+Training time (A2C):  1.8502389192581177  minutes
+A2C Sharpe Ratio:  0.19008769523758193
+======Trading from:  20250411 to  20250714
+previous_total_asset: 1037584.29864375
+end_total_asset: 1377321.6324016093
+total_reward: 339737.3337578593
+total_cost:  2621.8647
+total trades:  949
+Sharpe:  0.4300333950571724
+A2C Strategy took:  9.056378801663717  minutes

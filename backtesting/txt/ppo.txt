@@ -1,0 +1,62 @@
+============Start PPO Strategy============
+============================================
+turbulence_threshold:  289.5317758225865
+======PPO Training========
+Training time (PPO):  5.057790549596151  minutes
+PPO Sharpe Ratio:  0.3366000061896934
+======Trading from:  20240405 to  20240709
+previous_total_asset: 1000000
+end_total_asset: 1135454.3383528374
+total_reward: 135454.33835283737
+total_cost:  30874.475
+total trades:  959
+Sharpe:  0.35074515706172826
+============================================
+turbulence_threshold:  289.5317758225865
+======PPO Training========
+Training time (PPO):  4.88702435096105  minutes
+PPO Sharpe Ratio:  0.020885018873729826
+======Trading from:  20240709 to  20241008
+previous_total_asset: 1135454.3383528374
+end_total_asset: 976183.9151953125
+total_reward: -159270.4231575249
+total_cost:  31908.66
+total trades:  1040
+Sharpe:  -0.4961406695575046
+============================================
+turbulence_threshold:  289.5317758225865
+======PPO Training========
+Training time (PPO):  4.935921895503998  minutes
+PPO Sharpe Ratio:  -0.1662494038751424
+======Trading from:  20241008 to  20250106
+previous_total_asset: 976183.9151953125
+end_total_asset: 960315.7821736875
+total_reward: -15868.133021624992
+total_cost:  26844.848
+total trades:  989
+Sharpe:  -0.03451508312657536
+============================================
+turbulence_threshold:  289.5317758225865
+======PPO Training========
+Training time (PPO):  4.805873505274454  minutes
+PPO Sharpe Ratio:  -0.05432073633761861
+======Trading from:  20250106 to  20250411
+previous_total_asset: 960315.7821736875
+end_total_asset: 1111420.3450000002
+total_reward: 151104.56282631273
+total_cost:  24620.457
+total trades:  1028
+Sharpe:  0.27521109026137075
+============================================
+turbulence_threshold:  289.5317758225865
+======PPO Training========
+Training time (PPO):  4.8742318193117775  minutes
+PPO Sharpe Ratio:  -0.03741139419951778
+======Trading from:  20250411 to  20250714
+previous_total_asset: 1111420.3450000002
+end_total_asset: 1049702.7616
+total_reward: -61717.58340000012
+total_cost:  39742.062
+total trades:  1042
+Sharpe:  -0.07428878694777069
+PPO Strategy took:  24.596436846256257  minutes
