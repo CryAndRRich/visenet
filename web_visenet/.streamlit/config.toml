@@ -15,18 +15,18 @@ borderColor = "#314158"
 dataframeHeaderBackgroundColor = "#1d293d"
 
 # Base text
-font = "Space Grotesk"
+font = "IBM Plex Sans"
 baseFontWeight = 300
 baseFontSize = 14
 
 # Heading text
-headingFont = "Space Grotesk"
+headingFont = "IBM Plex Sans"
 headingFontWeights = [300, 400, 400, 300, 300, 300]
 headingFontSizes = ["2.5rem", "1.5rem", "1rem"]
 
 
 [[theme.fontFaces]]
-family = "Space Grotesk"
+family = "IBM Plex Sans"
 style = "normal"
 weight = "300 700"
-url = "https://fonts.gstatic.com/s/spacegrotesk/v21/V8mDoQDjQSkFtoMM3T6r8E7mPbF4C_k3HqU.woff2"
+url = "https://fonts.gstatic.com/s/ibmplexsans/v14/zYX-KVElMYYaJe8bpLHnCw.woff2"

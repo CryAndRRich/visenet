@@ -1,152 +1,91 @@
-# -*- coding: utf-8 -*-
-# Copyright 2024-2025 Streamlit Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+import os
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import streamlit as st
-import yfinance as yf
 import pandas as pd
 import altair as alt
+import datetime
+from typing import Tuple
+
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 st.set_page_config(
-    page_title="Stock peer analysis dashboard",
+    page_title="VISENET",
     page_icon=":chart_with_upwards_trend:",
     layout="wide",
 )
-
-"""
-# :material/query_stats: Stock peer analysis
-
-Easily compare stocks against others in their peer group.
-"""
-
-""  # Add some space.
+st.markdown("## VISENET")
 
 cols = st.columns([1, 3])
-# Will declare right cell later to avoid showing it when no data.
 
-STOCKS = [
-    "AAPL",
-    "ABBV",
-    "ACN",
-    "ADBE",
-    "ADP",
-    "AMD",
-    "AMGN",
-    "AMT",
-    "AMZN",
-    "APD",
-    "AVGO",
-    "AXP",
-    "BA",
-    "BK",
-    "BKNG",
-    "BMY",
-    "BRK.B",
-    "BSX",
-    "C",
-    "CAT",
-    "CI",
-    "CL",
-    "CMCSA",
-    "COST",
-    "CRM",
-    "CSCO",
-    "CVX",
-    "DE",
-    "DHR",
-    "DIS",
-    "DUK",
-    "ELV",
-    "EOG",
-    "EQR",
-    "FDX",
-    "GD",
-    "GE",
-    "GILD",
-    "GOOG",
-    "GOOGL",
-    "HD",
-    "HON",
-    "HUM",
-    "IBM",
-    "ICE",
-    "INTC",
-    "ISRG",
-    "JNJ",
-    "JPM",
-    "KO",
-    "LIN",
-    "LLY",
-    "LMT",
-    "LOW",
-    "MA",
-    "MCD",
-    "MDLZ",
-    "META",
-    "MMC",
-    "MO",
-    "MRK",
-    "MSFT",
-    "NEE",
-    "NFLX",
-    "NKE",
-    "NOW",
-    "NVDA",
-    "ORCL",
-    "PEP",
-    "PFE",
-    "PG",
-    "PLD",
-    "PM",
-    "PSA",
-    "REGN",
-    "RTX",
-    "SBUX",
-    "SCHW",
-    "SLB",
-    "SO",
-    "SPGI",
-    "T",
-    "TJX",
-    "TMO",
-    "TSLA",
-    "TXN",
-    "UNH",
-    "UNP",
-    "UPS",
-    "V",
-    "VZ",
-    "WFC",
-    "WM",
-    "WMT",
-    "XOM",
-]
+# Đường dẫn file CSV
+CSV_FILE = "data/output/top_30_stocks_after_train.csv"
 
-DEFAULT_STOCKS = ["AAPL", "MSFT", "GOOGL", "NVDA", "AMZN", "TSLA", "META"]
+# ==========================================================
+# Load và tổng hợp dữ liệu từ file CSV
+# - Trả về giá đóng cửa của các cổ phiếu
+# - Tạo dataframe tổng hợp cho biểu đồ nến và các chỉ số kỹ thuật
+# ==========================================================
+@st.cache_resource(show_spinner=False)
+def load_and_aggregate(filepath: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    df = pd.read_csv(filepath)
+
+    df["Date"] = pd.to_datetime(df["timestamp"], format="%Y%m%d")
+
+    # Hàm tổng hợp
+    agg_funcs = {
+        "open": "first",
+        "high": "max",
+        "low": "min",
+        "close": "last",
+        "vol": "sum",
+        "liq": "mean",
+        "rsi": "mean",
+        "macd": "mean",
+        "cci": "mean",
+        "adx": "mean",
+        "turbulence": "mean",
+    }
+
+    df_agg = (
+        df.groupby(["Date", "ticker"], as_index=False)
+        .agg(agg_funcs)
+        .sort_values(["ticker", "Date"])
+    )
+
+    data_close = df_agg.pivot(index="Date", columns="ticker", values="close").sort_index()
+
+    return data_close, df_agg
+
+
+# Load dữ liệu
+try:
+    data_close, df_agg = load_and_aggregate(CSV_FILE)
+except FileNotFoundError:
+    st.error(f"Không tìm thấy file CSV: {CSV_FILE}")
+    st.stop()
+except Exception as e:
+    st.exception(e)
+    st.stop()
+
+# Mặc định hiển thể 7 cổ phiếu đầu tiên
+STOCKS = sorted(df_agg["ticker"].unique().tolist())
+DEFAULT_STOCKS = STOCKS[:7]
 
 
 def stocks_to_str(stocks):
     return ",".join(stocks)
 
 
+# Khởi tạo tickers_input trong session_state nếu chưa có
 if "tickers_input" not in st.session_state:
     st.session_state.tickers_input = st.query_params.get(
         "stocks", stocks_to_str(DEFAULT_STOCKS)
     ).split(",")
 
-
-# Callback to update query param when input changes
+# Cập nhật tham số truy vấn khi tickers_input thay đổi
 def update_query_param():
     if st.session_state.tickers_input:
         st.query_params["stocks"] = stocks_to_str(st.session_state.tickers_input)
@@ -154,204 +93,303 @@ def update_query_param():
         st.query_params.pop("stocks", None)
 
 
-top_left_cell = cols[0].container(
-    border=True, height="stretch", vertical_alignment="center"
-)
+# ==========================================================
+# UI bên trái (bộ chọn cổ phiếu và phạm vi ngày)
+left = cols[0].container()
 
-with top_left_cell:
-    # Selectbox for stock tickers
+with left:
     tickers = st.multiselect(
-        "Stock tickers",
+        "Mã cổ phiếu",
         options=sorted(set(STOCKS) | set(st.session_state.tickers_input)),
         default=st.session_state.tickers_input,
-        placeholder="Choose stocks to compare. Example: NVDA",
-        accept_new_options=True,
+        placeholder="Chọn mã cổ phiếu để bắt đầu so sánh",
+        help="Bạn có thể nhập mã cổ phiếu thủ công",
+        key="tickers_input",
     )
 
-# Time horizon selector
-horizon_map = {
-    "1 Months": "1mo",
-    "3 Months": "3mo",
-    "6 Months": "6mo",
-    "1 Year": "1y",
-    "5 Years": "5y",
-    "10 Years": "10y",
-    "20 Years": "20y",
-}
+# ==========================================================
+# Chọn khoảng thời gian
+# ==========================================================
+with left:
+    min_date = data_close.index.min().date()
+    max_date = data_close.index.max().date()
 
-with top_left_cell:
-    # Buttons for picking time horizon
-    horizon = st.pills(
-        "Time horizon",
-        options=list(horizon_map.keys()),
-        default="6 Months",
+    option = st.selectbox(
+        "Chọn khoảng thời gian",
+        ["1 tháng", "3 tháng", "6 tháng", 
+         "1 năm", "2 năm", "5 năm", 
+         "Toàn bộ thời gian",
+         "Tự chọn"],
+        index=0,
     )
 
-tickers = [t.upper() for t in tickers]
+    if option == "1 tháng":
+        start_date = max_date - datetime.timedelta(days=30)
+        end_date = max_date
+    elif option == "3 tháng":
+        start_date = max_date - datetime.timedelta(days=90)
+        end_date = max_date
+    elif option == "6 tháng":
+        start_date = max_date - datetime.timedelta(days=180)
+        end_date = max_date
+    elif option == "1 năm":
+        start_date = max_date - datetime.timedelta(days=365)
+        end_date = max_date
+    elif option == "2 năm":
+        start_date = max_date - datetime.timedelta(days=2 * 365)
+        end_date = max_date
+    elif option == "5 năm":
+        start_date = max_date - datetime.timedelta(days=5 * 365)
+        end_date = max_date
+    elif option == "Toàn bộ thời gian":
+        start_date, end_date = min_date, max_date
+    else:
+        start_date = st.date_input(
+            "Ngày bắt đầu",
+            value=min_date,
+            min_value=min_date,
+            max_value=max_date,
+        )
+        end_date = st.date_input(
+            "Ngày kết thúc",
+            value=max_date,
+            min_value=min_date,
+            max_value=max_date,
+        )
+        if start_date > end_date:
+            st.error("⚠️ Ngày bắt đầu phải trước ngày kết thúc")
+            st.stop()
 
-# Update query param when text input changes
+# Mã cổ phiếu phải là chuỗi không rỗng và viết hoa
+tickers = [t.upper() for t in tickers if isinstance(t, str) and t.strip()]
+
 if tickers:
     st.query_params["stocks"] = stocks_to_str(tickers)
 else:
-    # Clear the param if input is empty
     st.query_params.pop("stocks", None)
 
+# Đảm bảo có ít nhất một mã cổ phiếu được chọn
 if not tickers:
-    top_left_cell.info("Pick some stocks to compare", icon=":material/info:")
+    left.info("Chọn ít nhất một mã cổ phiểu", icon=":material/info:")
     st.stop()
 
+# ==========================================================
+# UI bên phải (biểu đồ và bảng)
+right = cols[1].container()
 
-right_cell = cols[1].container(
-    border=True, height="stretch", vertical_alignment="center"
-)
+# ==========================================================
+# Trường hợp 1: một cổ phiếu -> biểu đồ nến + chỉ số kỹ thuật
+# ==========================================================
+if len(tickers) == 1:
+    ticker = tickers[0]
 
+    df_t = df_agg[df_agg["ticker"] == ticker].set_index("Date").sort_index()
+    df_t = df_t.loc[start_date:end_date].copy()
 
-@st.cache_resource(show_spinner=False)
-def load_data(tickers, period):
-    tickers_obj = yf.Tickers(tickers)
-    data = tickers_obj.history(period=period)
-    if data is None:
-        raise RuntimeError("YFinance returned no data.")
-    return data["Close"]
+    if df_t.empty:
+        st.error("Không có thông tin của mã trong khoảng thời gian đã chọn")
+        st.stop()
 
+    # Các cột chỉ số kỹ thuật
+    indicator_cols = [c for c in df_t.columns if c not in ["ticker", "open", "high", "low", "close", "vol", "liq"]]
 
-# Load the data
-try:
-    data = load_data(tickers, horizon_map[horizon])
-except yf.exceptions.YFRateLimitError as e:
-    st.warning("YFinance is rate-limiting us :(\nTry again later.")
-    load_data.clear()  # Remove the bad cache entry.
-    st.stop()
-
-empty_columns = data.columns[data.isna().all()].tolist()
-
-if empty_columns:
-    st.error(f"Error loading data for the tickers: {', '.join(empty_columns)}.")
-    st.stop()
-
-# Normalize prices (start at 1)
-normalized = data.div(data.iloc[0])
-
-latest_norm_values = {normalized[ticker].iat[-1]: ticker for ticker in tickers}
-max_norm_value = max(latest_norm_values.items())
-min_norm_value = min(latest_norm_values.items())
-
-bottom_left_cell = cols[0].container(
-    border=True, height="stretch", vertical_alignment="center"
-)
-
-with bottom_left_cell:
-    cols = st.columns(2)
-    cols[0].metric(
-        "Best stock",
-        max_norm_value[1],
-        delta=f"{round(max_norm_value[0] * 100)}%",
-        width="content",
-    )
-    cols[1].metric(
-        "Worst stock",
-        min_norm_value[1],
-        delta=f"{round(min_norm_value[0] * 100)}%",
-        width="content",
+    # Người dùng chọn chỉ số để hiển thị
+    default_inds = []
+    selected_inds = right.multiselect(
+        "Các chỉ số kỹ thuật",
+        options=indicator_cols,
+        default=default_inds,
     )
 
+    rows = 1 + len(selected_inds)
+    specs = [[{"secondary_y": True}]] + [[{}] for _ in selected_inds]
 
-# Plot normalized prices
-with right_cell:
-    st.altair_chart(
-        alt.Chart(
-            normalized.reset_index().melt(
-                id_vars=["Date"], var_name="Stock", value_name="Normalized price"
-            )
+    fig = make_subplots(
+        rows=rows,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.03,
+        row_heights=[0.5] + [0.5 / max(1, len(selected_inds)) for _ in selected_inds],
+        specs=specs,
+    )
+
+    fig.add_trace(
+        go.Candlestick(
+            x=df_t.index,
+            open=df_t["open"],
+            high=df_t["high"],
+            low=df_t["low"],
+            close=df_t["close"],
+            name=f"{ticker} OHLC",
+            increasing_line_color="#26a69a",
+            decreasing_line_color="#ef5350",
+            showlegend=False,
+        ),
+        row=1,
+        col=1,
+        secondary_y=False,
+    )
+
+    # Thanh khoản (volume)
+    if "vol" in df_t.columns:
+        fig.add_trace(
+            go.Bar(
+                x=df_t.index,
+                y=df_t["vol"],
+                name="Volume",
+                opacity=0.5,
+                marker=dict(color="#606c76"),
+                showlegend=False,
+            ),
+            row=1,
+            col=1,
+            secondary_y=True,
         )
+        fig.update_yaxes(title_text="Price", row=1, col=1, secondary_y=False)
+        fig.update_yaxes(title_text="Volume", row=1, col=1, secondary_y=True)
+
+    for sma_col in [c for c in df_t.columns if c.lower().startswith("sma") or c.lower().startswith("ema")]:
+        fig.add_trace(
+            go.Scatter(
+                x=df_t.index,
+                y=df_t[sma_col],
+                mode="lines",
+                line=dict(width=1.5),
+                name=sma_col,
+            ),
+            row=1,
+            col=1,
+            secondary_y=False,
+        )
+
+    for i, ind in enumerate(selected_inds, start=2):
+        if ind not in df_t.columns:
+            continue
+        fig.add_trace(
+            go.Scatter(x=df_t.index, y=df_t[ind], mode="lines", name=ind),
+            row=i,
+            col=1,
+        )
+        if ind.lower() in ("macd", "cci"):
+            fig.add_trace(
+                go.Scatter(x=df_t.index, y=[0] * len(df_t), mode="lines", line=dict(color="#888", dash="dash"), showlegend=False),
+                row=i,
+                col=1,
+            )
+        fig.update_yaxes(title_text=ind.upper(), row=i, col=1)
+
+    fig.update_layout(
+        xaxis_rangeslider_visible=False,
+        height=300 + 200 * max(0, len(selected_inds)),
+        margin=dict(l=10, r=10, t=40, b=30),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    )
+
+    right.plotly_chart(fig, use_container_width=True)
+
+    st.markdown("**Dữ liệu gốc**")
+    st.dataframe(df_t.reset_index(), width="stretch")
+
+# ==========================================================
+# Trường hợp 2: nhiều cổ phiếu -> biểu đồ giá chuẩn hóa + so sánh với trung bình các mã
+# ==========================================================
+else:
+    try:
+        data = data_close.loc[start_date:end_date, tickers]
+    except Exception:
+        tickers = [t for t in tickers if t in data_close.columns]
+        if not tickers:
+            st.error("Không có thông tin của mã nào trong khoảng thời gian đã chọn")
+            st.stop()
+        data = data_close.loc[start_date:end_date, tickers]
+
+    if data.isna().all().any():
+        empty_columns = data.columns[data.isna().all()].tolist()
+        st.error(f"Lỗi khi tải dữ liệu: {', '.join(empty_columns)}.")
+        st.stop()
+
+    normalized = data.div(data.iloc[0])
+
+    # Tính cổ phiếu tốt nhất và tệ nhất
+    latest_norm_values = {normalized[ticker].iat[-1]: ticker for ticker in tickers}
+    max_norm_value = max(latest_norm_values.items())
+    min_norm_value = min(latest_norm_values.items())
+
+    bottom = cols[0].container()
+    with bottom:
+        mcols = st.columns(2)
+        mcols[0].metric(
+            "Tốt nhất",
+            max_norm_value[1],
+            delta=f"{round(max_norm_value[0] * 100)}%",
+        )
+        mcols[1].metric(
+            "Tệ nhất",
+            min_norm_value[1],
+            delta=f"{round(min_norm_value[0] * 100)}%",
+        )
+
+    chart_data = normalized.reset_index().melt(id_vars=["Date"], var_name="Stock", value_name="Normalized price")
+    chart = (
+        alt.Chart(chart_data)
         .mark_line()
         .encode(
             alt.X("Date:T"),
             alt.Y("Normalized price:Q").scale(zero=False),
             alt.Color("Stock:N"),
+            tooltip=["Date", "Stock", alt.Tooltip("Normalized price", format=".4f")],
         )
-        .properties(height=400)
+        .properties(height=420)
     )
+    right.altair_chart(chart)
 
-""
-""
+    st.markdown("## So sánh với Trung bình các mã")
+    if len(tickers) <= 1:
+        st.warning("Cần chọn ít nhất 2 mã cổ phiếu để so sánh với Trung bình các mã", icon=":material/info:")
+        st.stop()
 
-# Plot individual stock vs peer average
-"""
-## Individual stocks vs peer average
+    NUM_COLS = 2
+    grid_cols = st.columns(NUM_COLS)
+    for i, ticker in enumerate(tickers):
+        peers = normalized.drop(columns=[ticker])
+        peer_avg = peers.mean(axis=1)
 
-For the analysis below, the "peer average" when analyzing stock X always
-excludes X itself.
-"""
-
-if len(tickers) <= 1:
-    st.warning("Pick 2 or more tickers to compare them")
-    st.stop()
-
-NUM_COLS = 4
-cols = st.columns(NUM_COLS)
-
-for i, ticker in enumerate(tickers):
-    # Calculate peer average (excluding current stock)
-    peers = normalized.drop(columns=[ticker])
-    peer_avg = peers.mean(axis=1)
-
-    # Create DataFrame with peer average.
-    plot_data = pd.DataFrame(
-        {
+        plot_data = pd.DataFrame({
             "Date": normalized.index,
             ticker: normalized[ticker],
-            "Peer average": peer_avg,
-        }
-    ).melt(id_vars=["Date"], var_name="Series", value_name="Price")
+            "Trung bình các mã": peer_avg
+        }).melt(id_vars=["Date"], var_name="Series", value_name="Price")
 
-    chart = (
-        alt.Chart(plot_data)
-        .mark_line()
-        .encode(
-            alt.X("Date:T"),
-            alt.Y("Price:Q").scale(zero=False),
-            alt.Color(
-                "Series:N",
-                scale=alt.Scale(domain=[ticker, "Peer average"], range=["red", "gray"]),
-                legend=alt.Legend(orient="bottom"),
-            ),
-            alt.Tooltip(["Date", "Series", "Price"]),
+        chart1 = (
+            alt.Chart(plot_data)
+            .mark_line()
+            .encode(
+                alt.X("Date:T"),
+                alt.Y("Price:Q").scale(zero=False),
+                alt.Color("Series:N", scale=alt.Scale(domain=[ticker, "Trung bình các mã"], range=["red", "gray"])),
+                tooltip=["Date", "Series", "Price"],
+            )
+            .properties(title=f"{ticker} và Trung bình các mã", height=300)
         )
-        .properties(title=f"{ticker} vs peer average", height=300)
-    )
 
-    cell = cols[(i * 2) % NUM_COLS].container(border=True)
-    cell.write("")
-    cell.altair_chart(chart, use_container_width=True)
+        cell = grid_cols[(i * 2) % NUM_COLS].container()
+        cell.altair_chart(chart1)
 
-    # Create Delta chart
-    plot_data = pd.DataFrame(
-        {
-            "Date": normalized.index,
-            "Delta": normalized[ticker] - peer_avg,
-        }
-    )
-
-    chart = (
-        alt.Chart(plot_data)
-        .mark_area()
-        .encode(
-            alt.X("Date:T"),
-            alt.Y("Delta:Q").scale(zero=False),
+        # Delta area chart
+        delta_df = pd.DataFrame({"Date": normalized.index, "Delta": normalized[ticker] - peer_avg})
+        chart2 = (
+            alt.Chart(delta_df)
+            .mark_area()
+            .encode(
+                alt.X("Date:T"),
+                alt.Y("Delta:Q").scale(zero=False),
+                tooltip=["Date", "Delta"],
+            )
+            .properties(title=f"Chênh lệch {ticker} với Trung bình các mã", height=300)
         )
-        .properties(title=f"{ticker} minus peer average", height=300)
-    )
+        cell2 = grid_cols[(i * 2 + 1) % NUM_COLS].container()
+        cell2.altair_chart(chart2)
 
-    cell = cols[(i * 2 + 1) % NUM_COLS].container(border=True)
-    cell.write("")
-    cell.altair_chart(chart, use_container_width=True)
-
-""
-""
-
-"""
-## Raw data
-"""
-
-data
+    # Raw data table for closes
+    st.markdown("## Dữ liệu gốc")
+    st.dataframe(data.reset_index(), width="stretch")

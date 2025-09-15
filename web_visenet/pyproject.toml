@@ -1,8 +1,7 @@
 [project]
-name = "stockpeers"
-version = "0.2.0"
-description = "Stock peer analysis dashboard: easily compare stocks against others in their peer group"
-readme = "README.md"
+name = "visenet"
+version = "0.1.0"
+description = "VISENET"
 requires-python = ">=3.10"
 dependencies = [
     "altair>=5.5.0",
