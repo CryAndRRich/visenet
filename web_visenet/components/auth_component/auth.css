@@ -1,0 +1,188 @@
+:root {
+    --card: #161b22;
+    --border: #30363d;
+    --primary: #3b82f6;
+    --primary-hover: #2563eb;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --shadow: rgba(0, 0, 0, 0.35);
+}
+
+body {
+    margin: 0;
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    background: var(--bg);
+    color: var(--text);
+}
+
+/* Wrapper */
+.wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 85vh;
+    background: transparent;
+}
+
+/* Flip Card */
+.flip-card {
+    width: 420px;
+    height: 440px;
+    perspective: 1200px;
+}
+
+.flip-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.9s cubic-bezier(0.19, 1, 0.22, 1);
+    transform-style: preserve-3d;
+}
+
+.flip-card.flipped .flip-inner {
+    transform: rotateY(180deg);
+}
+
+/* Card sides */
+.side {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0; left: 0;
+    border-radius: 18px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px var(--shadow);
+    padding: 28px;
+    box-sizing: border-box;
+    color: var(--text);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    animation: fadeIn 0.6s ease;
+}
+
+.back {
+    transform: rotateY(180deg);
+}
+
+/* Heading */
+h2 {
+    text-align: center;
+    margin: 10px 0 18px 0;
+    font-weight: 600;
+    font-size: 1.4rem;
+}
+
+/* Fields */
+.field {
+    margin-bottom: 14px;
+}
+
+.auth-input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #0d1117;
+    color: var(--text);
+    box-sizing: border-box;
+    font-size: 15px;
+    transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auth-input:focus {
+    outline: none;
+    border: 1px solid var(--primary);
+    box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
+}
+
+/* Password toggle */
+.password-wrapper {
+    position: relative;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 16px;
+    user-select: none;
+    transition: color 0.2s ease;
+}
+
+.toggle-password:hover {
+    color: var(--primary);
+}
+
+/* Buttons */
+.btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 12px;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background 0.25s ease, transform 0.15s ease;
+}
+
+.btn:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.link {
+    display: block;
+    width: 100%;
+    text-align: center;
+    background: transparent;
+    border: none;
+    color: var(--primary);
+    cursor: pointer;
+    margin-top: 12px;
+    font-size: 14px;
+    transition: color 0.2s ease;
+}
+
+.link:hover {
+    color: var(--primary-hover);
+}
+
+/* Logo */
+.logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    margin: 0 auto 12px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.06));
+    box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.2);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(10px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0); 
+    }
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .flip-card {
+        width: 92vw;
+        height: 500px;
+    }
+}

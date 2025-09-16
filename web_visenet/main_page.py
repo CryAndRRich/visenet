@@ -82,10 +82,8 @@ def show_main_page():
 
     # Khởi tạo tickers_input trong session_state nếu chưa có
     if "tickers_input" not in st.session_state:
-        st.session_state.tickers_input = st.query_params.get(
-            "stocks", stocks_to_str(DEFAULT_STOCKS)
-        ).split(",")
-
+        st.session_state.tickers_input = DEFAULT_STOCKS.copy()
+        
     # ==========================================================
     # UI bên trái (bộ chọn cổ phiếu và phạm vi ngày)
     left = cols[0].container()
@@ -368,7 +366,6 @@ def show_main_page():
             cell = grid_cols[(i * 2) % NUM_COLS].container()
             cell.altair_chart(chart1)
 
-            # Delta area chart
             delta_df = pd.DataFrame({"Date": normalized.index, "Delta": normalized[ticker] - peer_avg})
             chart2 = (
                 alt.Chart(delta_df)
@@ -383,6 +380,5 @@ def show_main_page():
             cell2 = grid_cols[(i * 2 + 1) % NUM_COLS].container()
             cell2.altair_chart(chart2)
 
-        # Raw data table for closes
         st.markdown("## Dữ liệu gốc")
         st.dataframe(data.reset_index(), width="stretch")

@@ -2,83 +2,169 @@ import os
 import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import streamlit as st
 import json
+from pathlib import Path
 import hashlib
-import os
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
+
+import streamlit as st
+import streamlit.components.v1 as components
+
 from web_visenet.main_page import show_main_page
 
-def hash_password(password):
+BASE_DIR = os.path.dirname(__file__)
+USERS_PATH = os.path.join(BASE_DIR, "json", "users.json")
+FLAG_PATH = os.path.join(BASE_DIR, "json", "login_flag.json")
+
+# Hàm băm mật khẩu
+def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
+# Hàm tải và lưu user
 def load_users():
-    if os.path.exists("web_visenet/json/users.json"):
-        with open("web_visenet/json/users.json", "r") as f:
-            return json.load(f)
+    if os.path.exists(USERS_PATH):
+        with open(USERS_PATH, "r", encoding="utf-8") as f:
+            try:
+                return json.load(f)
+            except Exception:
+                return {}
     return {}
 
+# Lưu user vào file
 def save_users(users):
-    with open("web_visenet/json/users.json", "w") as f:
-        json.dump(users, f)
+    os.makedirs(os.path.dirname(USERS_PATH), exist_ok=True)
+    with open(USERS_PATH, "w", encoding="utf-8") as f:
+        json.dump(users, f, ensure_ascii=False, indent=2)
 
-# Hàm đăng ký
-def register():
-    st.subheader("Đăng ký tài khoản")
-    username = st.text_input("Tên đăng nhập", key="reg_user")
-    password = st.text_input("Mật khẩu", type="password", key="reg_pass")
-    if st.button("Đăng ký"):
-        if not username or not password:
-            st.warning("Vui lòng điền đủ thông tin")
+
+_server_thread = None
+
+# Mở server local để xử lý đăng nhập/đăng ký
+def start_local_server(port=8765):
+    global _server_thread
+    if _server_thread is not None:
+        return  
+
+    class Handler(BaseHTTPRequestHandler):
+        def _set_cors(self):
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+            self.send_header("Access-Control-Allow-Headers", "Content-Type")
+
+        def do_OPTIONS(self):
+            self.send_response(200)
+            self._set_cors()
+            self.end_headers()
+
+        def do_POST(self):
+            if self.path != "/save_user":
+                self.send_response(404)
+                self.end_headers()
+                return
+
+            length = int(self.headers.get("Content-Length", 0))
+            body = self.rfile.read(length).decode("utf-8")
+            try:
+                data = json.loads(body)
+            except Exception:
+                data = {}
+
+            typ = data.get("type")
+            username = (data.get("username") or "").strip()
+            password = (data.get("password") or "").strip()
+
+            users = load_users()
+
+            if typ == "register" and username and password:
+                # thêm user mới
+                users[username] = hash_password(password)
+                save_users(users)
+                # coi như đăng nhập luôn
+                with open(FLAG_PATH, "w", encoding="utf-8") as f:
+                    json.dump({"username": username}, f)
+
+            elif typ == "login" and username and password:
+                # kiểm tra mật khẩu
+                stored = users.get(username)
+                if stored and stored == hash_password(password):
+                    with open(FLAG_PATH, "w", encoding="utf-8") as f:
+                        json.dump({"username": username}, f)
+
+            self.send_response(200)
+            self._set_cors()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps({"ok": True}).encode("utf-8"))
+
+        def log_message(self, format, *args):
             return
-        users = load_users()
-        if username in users:
-            st.error("Tên đăng nhập đã tồn tại!")
-        else:
-            users[username] = hash_password(password)
-            save_users(users)
-            st.success("Đăng ký thành công! Hãy đăng nhập ngay.")
 
-# Hàm đăng nhập
-def login():
-    st.subheader("Đăng nhập")
-    username = st.text_input("Tên đăng nhập", key="login_user")
-    password = st.text_input("Mật khẩu", type="password", key="login_pass")
-    if st.button("Đăng nhập"):
-        users = load_users()
-        if username in users and users[username] == hash_password(password):
-            st.session_state["logged_in"] = True
-            st.session_state["user"] = username
-            # Reload để tự động vào main page
-            st.session_state.rerun() 
-        else:
-            st.error("Sai tên đăng nhập hoặc mật khẩu")
+    server = HTTPServer(("localhost", port), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    _server_thread = thread
 
-# Hàm đăng xuất
-def logout():
-    st.session_state["logged_in"] = False
-    st.session_state["user"] = ""
-    st.session_state.rerun()  # reload về trang login/register
+
+# Interface HTML cho đăng nhập/đăng ký
+def load_auth_html():
+    base_dir = Path(__file__).parent / "components" / "auth_component"
+    html_path = base_dir / "auth.html"
+    css_path = base_dir / "auth.css"
+    js_path = base_dir / "auth.js"
+
+    html = html_path.read_text(encoding="utf-8")
+    css = css_path.read_text(encoding="utf-8")
+    js = js_path.read_text(encoding="utf-8")
+
+    # Thay thế thẻ link/script bằng nội dung inline
+    html = html.replace(
+        '<link rel="stylesheet" href="auth.css">',
+        f"<style>\n{css}\n</style>"
+    )
+    html = html.replace(
+        '<script src="auth.js"></script>',
+        f"<script>\n{js}\n</script>"
+    )
+    return html
 
 # Hàm chính
 def main():
-    if "logged_in" not in st.session_state:
-        st.session_state["logged_in"] = False
-        st.session_state["user"] = ""
+    st.set_page_config(page_title="ViseNet", layout="wide")
 
+    if "local_server_started" not in st.session_state:
+        start_local_server(8765)
+        st.session_state["local_server_started"] = True
+
+    st.session_state.setdefault("logged_in", False)
+    st.session_state.setdefault("user", "")
+
+    # đã login thì hiện page chính
     if st.session_state["logged_in"]:
-        st.sidebar.write(f"Xin chào, {st.session_state['user']}")
+        st.sidebar.success(f"Xin chào, {st.session_state['user']} 👋")
         if st.sidebar.button("Đăng xuất"):
-            logout()
-        
-        # Hiển thị nội dung chính
+            st.session_state["logged_in"] = False
+            st.session_state["user"] = ""
+            st.rerun()
         show_main_page()
-    else:
-        st.title("Chào mừng! Vui lòng đăng nhập hoặc đăng ký")
-        choice = st.radio("Chọn hành động:", ["Đăng nhập", "Đăng ký"])
-        if choice == "Đăng nhập":
-            login()
-        else:
-            register()
+        return
+
+    # Login page
+    components.html(load_auth_html(), height=600, scrolling=False)
+
+    if os.path.exists(FLAG_PATH):
+        try:
+            with open(FLAG_PATH, "r", encoding="utf-8") as f:
+                flag = json.load(f)
+                username = flag.get("username")
+            os.remove(FLAG_PATH)
+            if username:
+                st.session_state["logged_in"] = True
+                st.session_state["user"] = username
+                st.rerun()
+        except Exception:
+            pass
+
 
 if __name__ == "__main__":
     main()

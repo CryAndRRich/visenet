@@ -1,0 +1,32 @@
+<link rel="stylesheet" href="auth.css">
+<div class="wrap" id="wrap">
+  <div class="flip-card" id="flipCard">
+    <div class="flip-inner" id="flipInner">
+      <div class="side front">
+        <div class="logo"><svg width="36" height="36" viewBox="0 0 24 24" fill="#615fff"><path d="M12 2L20 7v10l-8 5-8-5V7l8-5z"/></svg></div>
+        <h2>VISENET - Đăng nhập</h2>
+        <div class="field"><input id="login_user" class="auth-input" placeholder="Tên đăng nhập" /></div>
+        <div class="field password-wrapper">
+          <input id="login_pass" class="auth-input" type="password" placeholder="Mật khẩu" />
+          <span class="toggle-password" onclick="togglePassword('login_pass', this)">👁</span>
+        </div>
+        <button class="btn" onclick="submitLogin()">Đăng nhập</button>
+        <button class="link" onclick="flipTo('back')">👉 Chưa có tài khoản? Đăng ký</button>
+      </div>
+
+      <div class="side back">
+        <div class="logo"><svg width="36" height="36" viewBox="0 0 24 24" fill="#615fff"><path d="M12 2L20 7v10l-8 5-8-5V7l8-5z"/></svg></div>
+        <h2>VISENET - Đăng ký</h2>
+        <div class="field"><input id="reg_user" class="auth-input" placeholder="Tên đăng nhập" /></div>
+        <div class="field password-wrapper">
+          <input id="reg_pass" class="auth-input" type="password" placeholder="Mật khẩu" />
+          <span class="toggle-password" onclick="togglePassword('reg_pass', this)">👁</span>
+        </div>
+        <button class="btn" onclick="submitRegister()">Đăng ký</button>
+        <button class="link" onclick="flipTo('front')">🔙 Quay lại đăng nhập</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="auth.js"></script>
