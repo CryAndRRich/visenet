@@ -139,6 +139,19 @@ def main():
     st.session_state.setdefault("logged_in", False)
     st.session_state.setdefault("user", "")
 
+    if os.path.exists(FLAG_PATH):
+        try:
+            with open(FLAG_PATH, "r", encoding="utf-8") as f:
+                flag = json.load(f)
+                username = flag.get("username")
+            os.remove(FLAG_PATH)
+            if username:
+                st.session_state["logged_in"] = True
+                st.session_state["user"] = username
+                st.rerun()
+        except Exception:
+            pass
+
     # đã login thì hiện page chính
     if st.session_state["logged_in"]:
         st.sidebar.success(f"Xin chào, {st.session_state['user']} 👋")
@@ -172,19 +185,6 @@ def main():
 
     # Login page
     components.html(load_auth_html(), height=600, scrolling=False)
-
-    if os.path.exists(FLAG_PATH):
-        try:
-            with open(FLAG_PATH, "r", encoding="utf-8") as f:
-                flag = json.load(f)
-                username = flag.get("username")
-            os.remove(FLAG_PATH)
-            if username:
-                st.session_state["logged_in"] = True
-                st.session_state["user"] = username
-                st.rerun()
-        except Exception:
-            pass
 
 
 if __name__ == "__main__":

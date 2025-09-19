@@ -1,6 +1,8 @@
 import smtplib
 from email.mime.text import MIMEText
-def parse_actions(daily_actions):
+
+def parse_actions(daily_actions: list) -> list:
+    """Chuyển đổi danh sách hành động hàng ngày thành các thông báo, gợi ý"""
     alerts = []
     for entry in daily_actions:
         date = entry["date"]
@@ -19,7 +21,13 @@ def parse_actions(daily_actions):
 
     return alerts
 
-def send_email(subject, body, to_email, from_email, app_password):
+def send_email(subject: str, 
+               body: str, 
+               to_email: str, 
+               from_email: str, 
+               app_password: str) -> None:
+    """Gửi email với tiêu đề và nội dung đã cho"""
+    
     msg = MIMEText(body, "plain", "utf-8")
     msg["Subject"] = subject
     msg["From"] = from_email

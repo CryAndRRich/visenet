@@ -6,11 +6,12 @@ import io
 import streamlit as st
 import pandas as pd
 import altair as alt
-import datetime
+from datetime import datetime, timedelta
 from typing import Tuple
 
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+
 
 def show_main_page():
     st.set_page_config(
@@ -19,6 +20,48 @@ def show_main_page():
         layout="wide",
     )
     st.markdown("## VISENET")
+
+    # Khởi tạo session_state nếu chưa có
+    if "notifications" not in st.session_state:
+        st.session_state.notifications = []
+    if "unread_count" not in st.session_state:
+        st.session_state.unread_count = 0
+    if "show_notif" not in st.session_state:
+        st.session_state.show_notif = False
+
+    # Hàm thêm thông báo mới
+    def add_notification(message: str):
+        st.session_state.notifications.insert(0, {
+            "message": message,
+            "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "read": False
+        })
+        st.session_state.unread_count += 1
+
+    with st.expander("📜 Lịch sử thông báo", expanded=False):
+        # Tạo 2 cột cho 2 nút
+        cols = st.columns([3, 2, 12], gap="small")
+
+        with cols[0]:
+            if st.button("Đánh dấu tất cả đã đọc", key="mark_read"):
+                for n in st.session_state.notifications:
+                    n["read"] = True
+                st.session_state.unread_count = 0
+                
+        with cols[1]:
+            if st.button("Xóa tất cả", key="clear_notif"):
+                st.session_state.notifications.clear()
+                st.session_state.unread_count = 0
+
+        # Chỉ render khung nếu có thông báo
+        if st.session_state.notifications:
+            notif_html = "<div class='notif-box'>"
+            for notif in st.session_state.notifications:
+                color = "🔴" if not notif["read"] else "⚪"
+                notif_html += f"<p>{color} <b>{notif['time']}</b><br>{notif['message']}</p>"
+            notif_html += "</div>"
+
+            st.markdown(notif_html, unsafe_allow_html=True)
 
     cols = st.columns([1, 3])
 
@@ -63,7 +106,7 @@ def show_main_page():
         try:
             data_close, df_agg = load_and_aggregate(st.session_state["uploaded_file_bytes"])
         except Exception as e:
-            st.error("❌ Lỗi khi đọc file CSV")
+            st.error("❌ Lỗi khi đọc file")
             st.exception(e)
             st.stop()
 
@@ -73,7 +116,7 @@ def show_main_page():
 
     else:
         data_close, df_agg, STOCKS, DEFAULT_STOCKS = None, None, None, None
-        st.warning("⚠️ Chưa có file CSV nào được tải lên")
+        st.warning("⚠️ Chưa có file thông tin mã cổ phiếu nào được tải lên")
 
     def stocks_to_str(stocks):
         return ",".join(stocks)
@@ -112,22 +155,22 @@ def show_main_page():
             )
 
             if option == "1 tháng":
-                start_date = max_date - datetime.timedelta(days=30)
+                start_date = max_date - timedelta(days=30)
                 end_date = max_date
             elif option == "3 tháng":
-                start_date = max_date - datetime.timedelta(days=90)
+                start_date = max_date - timedelta(days=90)
                 end_date = max_date
             elif option == "6 tháng":
-                start_date = max_date - datetime.timedelta(days=180)
+                start_date = max_date - timedelta(days=180)
                 end_date = max_date
             elif option == "1 năm":
-                start_date = max_date - datetime.timedelta(days=365)
+                start_date = max_date - timedelta(days=365)
                 end_date = max_date
             elif option == "2 năm":
-                start_date = max_date - datetime.timedelta(days=2 * 365)
+                start_date = max_date - timedelta(days=2*365)
                 end_date = max_date
             elif option == "5 năm":
-                start_date = max_date - datetime.timedelta(days=5 * 365)
+                start_date = max_date - timedelta(days=5*365)
                 end_date = max_date
             elif option == "Toàn bộ thời gian":
                 start_date, end_date = min_date, max_date
@@ -302,7 +345,7 @@ def show_main_page():
             # Tính cổ phiếu tốt nhất và tệ nhất
             latest_norm_values = {normalized[ticker].iat[-1]: ticker for ticker in tickers}
             max_norm_value = max(latest_norm_values.items())
-            min_norm_value = min(latest_norm_values.items())
+            min_norm_value = min(latest_norm_values.items()) 
 
             bottom = cols[0].container()
             with bottom:
@@ -310,12 +353,12 @@ def show_main_page():
                 mcols[0].metric(
                     "Tốt nhất",
                     max_norm_value[1],
-                    delta=f"{round(max_norm_value[0] * 100)}%",
+                    delta=f"{round((max_norm_value[0] - 1) * 100, 2)}%",
                 )
                 mcols[1].metric(
                     "Tệ nhất",
                     min_norm_value[1],
-                    delta=f"{round(min_norm_value[0] * 100)}%",
+                    delta=f"{round((min_norm_value[0] - 1) * 100, 2)}%",
                 )
 
             chart_data = normalized.reset_index().melt(id_vars=["Date"], var_name="Stock", value_name="Normalized price")
