@@ -142,12 +142,33 @@ def main():
     # đã login thì hiện page chính
     if st.session_state["logged_in"]:
         st.sidebar.success(f"Xin chào, {st.session_state['user']} 👋")
+
+        # Nút đăng xuất
         if st.sidebar.button("Đăng xuất"):
             st.session_state["logged_in"] = False
             st.session_state["user"] = ""
             st.rerun()
+
+        # Upload file (csv, json, txt)
+        uploaded_file = st.sidebar.file_uploader(
+            "Tải lên thông tin các mã cổ phiếu",
+            type=["csv", "json", "txt"]
+        )
+
+        if uploaded_file is not None:
+            # Lưu file bytes vào session
+            st.session_state["uploaded_file_name"] = uploaded_file.name
+            st.session_state["uploaded_file_bytes"] = uploaded_file.getvalue()
+
+        # Nhập email để gửi thông báo
+        email_to_notify = st.sidebar.text_input("Nhập email bạn muốn gửi thông báo tới:")
+        if email_to_notify:
+            st.sidebar.write(f"📧 Xác nhận sẽ gửi thông báo tới: {email_to_notify}")
+
+        # Hiển thị trang chính
         show_main_page()
         return
+
 
     # Login page
     components.html(load_auth_html(), height=600, scrolling=False)
