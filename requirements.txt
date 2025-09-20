@@ -6,6 +6,7 @@ statsmodels==0.14.5
 torch==2.3.1 
 torchvision== 0.20.1
 torchaudio==2.8.0
+stable-baselines
 stable-baselines3[extra]==2.7.0
 sb3-contrib==2.7.0
 shimmy==2.0.0
@@ -14,3 +15,5 @@ pathlib===1.0.1
 streamlit==1.49.1
 altair==5.5.0
 plotly==6.0.0
+shimmy>=2.0
+smtplib
