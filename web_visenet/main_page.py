@@ -38,7 +38,13 @@ def show_main_page():
         })
         st.session_state.unread_count += 1
 
-    with st.expander("📜 Lịch sử thông báo", expanded=False):
+    # Kiểm tra xem có thông báo chưa đọc không
+    has_unread = sum(notif["read"] == False for notif in st.session_state.notifications)
+
+    # Nếu có thông báo chưa đọc -> in đậm
+    expander_title = f"📜 Lịch sử thông báo ({has_unread})" if has_unread != 0 else "📜 Lịch sử thông báo"
+
+    with st.expander(expander_title, expanded=False):
         # Tạo 2 cột cho 2 nút
         cols = st.columns([3, 2, 12], gap="small")
 
@@ -47,11 +53,13 @@ def show_main_page():
                 for n in st.session_state.notifications:
                     n["read"] = True
                 st.session_state.unread_count = 0
+                st.rerun()
                 
         with cols[1]:
             if st.button("Xóa tất cả", key="clear_notif"):
                 st.session_state.notifications.clear()
                 st.session_state.unread_count = 0
+                st.rerun()
 
         # Chỉ render khung nếu có thông báo
         if st.session_state.notifications:
@@ -62,6 +70,9 @@ def show_main_page():
             notif_html += "</div>"
 
             st.markdown(notif_html, unsafe_allow_html=True)
+
+    # if st.button("Thêm thông báo"):
+    #     add_notification("Đây là thông báo mới!")
 
     cols = st.columns([1, 3])
 

@@ -1,5 +1,5 @@
 ## VISENET: Vietnamese Investment weighted-Scoring and Ensemble Network for Enhanced Trading
-Đây là repository của mô hình **VISENET**, sản phẩm của đội thi **HD4K** trong **Vòng 02 Cuộc thi Data Science Talent Competition 2025**
+Đây là repository của mô hình **VISENET**, sản phẩm của đội thi **HD4K** trong **Vòng 02** và **Vòng 03** trong khuôn khổ **Cuộc thi Data Science Talent Competition 2025**
 
 ```
 visenet/
@@ -8,7 +8,7 @@ visenet/
 │
 ├── data/                                     # File dữ liệu thu thập từ FiinQuantX
 │
-├── env/                                      # Thiết lập môi trường giao dịch
+├── env/                                      # Thiết lập môi trường ảo phục vụ giao dịch
 │   ├── EnvMultipleStock_trade.py/            
 |   ├── EnvMultipleStock_train.py/
 |   └── EnvMultipleStock_validation.py/
@@ -23,6 +23,22 @@ visenet/
 |   └── utils.py/                             # Các hàm tính toán và vẽ biểu đồ hiệu suất đầu tư
 |
 ├── runDRL.py/                                # Hàm chạy mô hình ensemble
+|
+├── web_visenet/                              # Thư mục chứa giao diện dashboard
+|   ├── .streamlit/                           
+|   |   └── config.toml/                      # Lưu trữ các thông số cho giao diện web
+|   |
+|   ├── components/auth_component/            # Thư mục chứa file xây dựng login page
+|   |   ├── auth.html/  
+|   |   ├── auth.js/  
+|   |   └── auth.css/  
+|   |
+|   ├── json/                                 #  File lưu trữ thông tin tài khoản người dùng
+|   |   └── users.json/  
+|   |
+|   ├── send_notifications.py/                # Hàm gửi thông báo đến email người dùng
+|   ├── main_page.py/                         # Trang chính dashboard hiển thị dữ liệu
+|   └── app.py/                               # File chạy web đăng nhập và chuyển sang trang chính
 |
 ├── backtesting/                              # Thư mục chứa notebook và kết quả chạy thử
 |   ├── results/                              # File zip kết quả chạy mô hình ensemble
@@ -62,3 +78,8 @@ pip install -r visenet/requirements.txt
 **Lưu ý**: 
 - Đường dẫn file trong các file `.ipynb` và `.py` có thể không chính xác, nếu chạy hãy cẩn thận điều chỉnh lại
 - Việc chạy các file notebook run_model sẽ tốn nhiều thời gian
+
+### 4. Chạy và hiển thị web hệ thống cảnh báo
+```
+streamlit run web_visnet/app.py
+```
