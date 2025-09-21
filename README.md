@@ -1,5 +1,5 @@
 ## VISENET: Vietnamese Investment weighted-Scoring and Ensemble Network for Enhanced Trading
-Đây là repository của mô hình **VISENET**, sản phẩm của đội thi **HD4K** trong **Vòng 02** và **Vòng 03** trong khuôn khổ **Cuộc thi Data Science Talent Competition 2025**
+Đây là repository của mô hình **VISENET** và hệ thống cảnh bảo thời gian thực, sản phẩm của đội thi **HD4K** ở **Vòng 02** và **Vòng 03** trong khuôn khổ **Cuộc thi Data Science Talent Competition 2025**
 
 ```
 visenet/
@@ -33,8 +33,8 @@ visenet/
 |   |   ├── auth.js/  
 |   |   └── auth.css/  
 |   |
-|   ├── json/                                 #  File lưu trữ thông tin tài khoản người dùng
-|   |   └── users.json/  
+|   ├── json/                                 
+|   |   └── users.json/                       # File lưu trữ thông tin tài khoản người dùng
 |   |
 |   ├── send_notifications.py/                # Hàm gửi thông báo đến email người dùng
 |   ├── main_page.py/                         # Trang chính dashboard hiển thị dữ liệu
@@ -50,9 +50,18 @@ visenet/
 |   ├── a2c_run_model.ipynb/                  # File notebook chạy mô hình A2C
 |   ├── ppo_run_model.ipynb/                  # File notebook chạy mô hình PPO
 |   ├── td3_run_model.ipynb/                  # File notebook chạy mô hình TD3
-|   └── visenet_run_model.ipynb/              # File notebook chạy mô hình ensemble
+|   ├── visenet_run_model.ipynb/              # File notebook chạy mô hình ensemble
+|   |
+|   ├── demo_realtime_alerts.ipynb/           # File notebook chạy mô hình kèm cảnh báo realtime
+|   └── demo_visenet.mp4/                     # File demo giao diện visenet
 |
-├── report/                                   # Thư mục chứa file báo cáo pdf
+├── report/                                   # Thư mục chứa file báo cáo pdf và các file liên quan
+|   ├── img/                                  # Thư mục chứa ảnh sử dụng trong báo cáo
+|   |
+|   ├── problem2_HD4K.pdf/                    # File báo cáo mô hình VISENET vòng 02
+|   |
+|   ├── problem3_HD4K.pdf/                    # File báo cáo hệ thống cảnh báo VISENET 2.0 vòng 03
+|   └── slide_problem3_HD4K(pdf).pdf/         # Slide thuyết trình VISENET (bản PDF)
 |
 ├── LICENSE/
 ├── requirements.txt/                         # Cấu hình các thư viện cần thiết
@@ -73,11 +82,12 @@ pip install -r visenet/requirements.txt
 - Các file `data/get_data.py`, `data/preprocessor.py` để lấy dữ liệu và tiền xử lý
 - Chạy file `models/wscoring.py` để lọc chọn top 30 cổ phiếu (notebook `backtesting/wscoring.ipynb`)
 - Chạy file `runDRL.py` để tiến hành huấn luyện mô hình ensemble (notebook `backtesting/visenet_run_model.ipynb`)
+- Chạy notebook `backtesting/demo_realtime_alerts.ipynb` để chạy mô hình ensemble kèm cảnh báo realtime
 - Chạy file `models/utils.py` tính toán và vẽ các biểu đồ để phân tích hiệu suất đầu tư
 
 **Lưu ý**: 
 - Đường dẫn file trong các file `.ipynb` và `.py` có thể không chính xác, nếu chạy hãy cẩn thận điều chỉnh lại
-- Việc chạy các file notebook run_model sẽ tốn nhiều thời gian
+- Việc chạy các file notebook từ đầu sẽ tốn nhiều thời gian
 
 ### 4. Chạy và hiển thị web hệ thống cảnh báo
 ```

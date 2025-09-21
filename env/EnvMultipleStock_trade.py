@@ -254,5 +254,6 @@ class StockEnvTrade(gym.Env):
     def _seed(self, seed=None):
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
+    
     def save_asset_memory(self):
         return self.asset_memory
