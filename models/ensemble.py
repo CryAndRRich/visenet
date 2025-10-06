@@ -1,17 +1,19 @@
+from typing import Optional
 import pandas as pd
 import numpy as np
 import time
 
 # ================================================================
-# Mô hình DRL
+# Deep Reinforcement Learning (DRL) models
 # ================================================================
 from stable_baselines3 import A2C, PPO, TD3
+from stable_baselines3.common.base_class import BaseAlgorithm
 from stable_baselines3.common.noise import OrnsteinUhlenbeckActionNoise
 from stable_baselines3.common.vec_env import DummyVecEnv
 
 
 # ================================================================
-# Môi trường giao dịch cổ phiếu
+# Stock trading environment
 # ================================================================
 from env.EnvMultipleStock_train import StockEnvTrain
 from env.EnvMultipleStock_validation import StockEnvValidation
@@ -21,10 +23,22 @@ from preprocess.preprocessor import data_split
 
 
 # ================================================================
-# Hàm huấn luyện DRL
+# Functions to train DRL models
 # ================================================================
-def train_A2C(env_train, model_name, timesteps=25000):
-    """Train A2C model"""
+def train_A2C(env_train: DummyVecEnv, 
+              model_name: str, 
+              timesteps: int = 25000) -> A2C:
+    """
+    Train A2C model
+    
+    Parameters:
+        env_train: training environment
+        model_name: name of the model
+        timesteps: number of timesteps to train
+    
+    Returns:
+        model: trained A2C model
+    """
     start = time.time()
     model = A2C("MlpPolicy", env_train, verbose=0)
     model.learn(total_timesteps=timesteps)
@@ -34,8 +48,20 @@ def train_A2C(env_train, model_name, timesteps=25000):
     return model
 
 
-def train_TD3(env_train, model_name, timesteps=10000):
-    """Train TD3 model (thay cho DDPG)"""
+def train_TD3(env_train: DummyVecEnv, 
+              model_name: str, 
+              timesteps: int = 10000) -> TD3:
+    """
+    Train TD3 model
+    
+    Parameters:
+        env_train: training environment
+        model_name: name of the model
+        timesteps: number of timesteps to train
+        
+    Returns:
+        model: trained TD3 model
+    """
     n_actions = env_train.action_space.shape[-1]
     action_noise = OrnsteinUhlenbeckActionNoise(
         mean=np.zeros(n_actions), sigma=0.1 * np.ones(n_actions)
@@ -50,8 +76,20 @@ def train_TD3(env_train, model_name, timesteps=10000):
     return model
 
 
-def train_PPO(env_train, model_name, timesteps=50000):
-    """Train PPO model"""
+def train_PPO(env_train: DummyVecEnv, 
+              model_name: str, 
+              timesteps: int = 50000) -> PPO:
+    """
+    Train PPO model
+    
+    Parameters:
+        env_train: training environment
+        model_name: name of the model
+        timesteps: number of timesteps to train
+        
+    Returns:
+        model: trained PPO model
+    """
     start = time.time()
     model = PPO("MlpPolicy", env_train, ent_coef=0.005, verbose=0)
     model.learn(total_timesteps=timesteps)
@@ -62,10 +100,34 @@ def train_PPO(env_train, model_name, timesteps=50000):
 
 
 # ================================================================
-# Hàm dự đoán DRL
+# Function to make predictions
 # ================================================================
-def DRL_prediction(df, model, name, last_state, iter_num, unique_trade_date, rebalance_window, turbulence_threshold, initial):
-    """Dự đoán dựa trên mô hình đã huấn luyện"""
+def DRL_prediction(df: pd.DataFrame, 
+                   model: BaseAlgorithm, 
+                   name: str, 
+                   last_state: Optional[np.ndarray], 
+                   iter_num: int, 
+                   unique_trade_date: list, 
+                   rebalance_window: int, 
+                   turbulence_threshold: float, 
+                   initial: bool) -> np.ndarray:
+    """
+    Predicting based on trained model
+    
+    Parameters:
+        df: dataframe containing stock data
+        model: trained DRL model
+        name: name of the model
+        last_state: last state from previous iteration
+        iter_num: current iteration number
+        unique_trade_date: list of unique trade dates
+        rebalance_window: rebalance window size
+        turbulence_threshold: turbulence threshold value
+        initial: boolean indicating if it's the initial run
+    
+    Returns:
+        last_state: last state after prediction
+    """
 
     trade_data = data_split(df, start=unique_trade_date[iter_num - rebalance_window], end=unique_trade_date[iter_num])
     env_trade = DummyVecEnv([lambda: StockEnvTrade(trade_data,
@@ -92,14 +154,34 @@ def DRL_prediction(df, model, name, last_state, iter_num, unique_trade_date, reb
     return last_state
 
 
-def DRL_validation(model, test_data, test_env, test_obs) -> None:
-    for i in range(len(test_data.index.unique())):
+def DRL_validation(model: BaseAlgorithm, 
+                   test_data: pd.DataFrame, 
+                   test_env: DummyVecEnv, 
+                   test_obs: np.ndarray) -> None:
+    """
+    Validate the trained model
+    
+    Parameters:
+        model: trained DRL model
+        test_data: dataframe containing validation data
+        test_env: validation environment
+        test_obs: initial observation from the validation environment
+    """
+    for _ in range(len(test_data.index.unique())):
         action, _ = model.predict(test_obs)
         test_obs, _, _, _ = test_env.step(action)
 
 
-def get_validation_sharpe(iteration):
-    """Tính toán Sharpe ratio từ kết quả xác nhận"""
+def get_validation_sharpe(iteration: int) -> float:
+    """
+    Calculate the Sharpe ratio from validation results
+    
+    Parameters:
+        iteration: current iteration number
+    
+    Returns:
+        sharpe: calculated Sharpe ratio
+    """
     df_total_value = pd.read_csv(
         f"results/account_value_validation_{iteration}.csv", 
         index_col=0
@@ -110,10 +192,21 @@ def get_validation_sharpe(iteration):
     return sharpe
 
 # ================================================================
-# Chiến lược Ensemble
+# Ensemble strategy combining PPO, A2C, and TD3
 # ================================================================
-def run_ensemble_strategy(df, unique_trade_date, rebalance_window, validation_window):
-    """Chiến lược Ensemble kết hợp PPO, A2C và TD3"""
+def run_ensemble_strategy(df: pd.DataFrame, 
+                          unique_trade_date: list, 
+                          rebalance_window: int, 
+                          validation_window: int) -> None:
+    """
+    Run ensemble strategy using PPO, A2C, and TD3 models
+    
+    Parameters:
+        df: dataframe containing stock data
+        unique_trade_date: list of unique trade dates
+        rebalance_window: rebalance window size
+        validation_window: validation window size
+    """
     print("============Start Ensemble Strategy============")
     last_state_ensemble = []
 

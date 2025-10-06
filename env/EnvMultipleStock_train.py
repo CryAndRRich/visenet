@@ -9,24 +9,25 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-# Mỗi lần giao dịch tối đa mua/bán 100 cổ phiếu
+# Each time trading a maximum of 100 shares
 HMAX_NORMALIZE = 100
-# Lượng tiền ban đầu
+# Account balance
 INITIAL_ACCOUNT_BALANCE = 1000000
-# Số luợng cổ phiếu trong danh mục đầu tư
+# Number of stocks in our portfolio
 STOCK_DIM = 30
-# Phí giao dịch
+# Transaction fee: 0.1% commission
 TRANSACTION_FEE_PERCENT = 0.001
 REWARD_SCALING = 1e-4
 
 class StockEnvTrain(gym.Env):
-    """Môi trường giao dịch chứng khoán cho OpenAI gym"""
+    """Stock Trading Environment that follows gym interface"""
     metadata = {"render.modes": ["human"]}
 
     def __init__(self, 
                  df: pd.DataFrame, 
                  day: int = 0) -> None:
-        #super(StockEnv, self).__init__()
+        # super(StockEnv, self).__init__()
+
         # money = 10
         # scope = 1
         self.day = day
@@ -50,17 +51,19 @@ class StockEnvTrain(gym.Env):
         self.reward = 0
         self.cost = 0
 
-        # Lưu trữ giá trị tài sản theo thời gian
+        # Store the asset value over time
         self.asset_memory = [INITIAL_ACCOUNT_BALANCE]
         self.rewards_memory = []
         self.trades = 0
         # self.reset()
         self._seed()
 
-    def _sell_stock(self, index, action):
-        # Thực hiện hành động bán dựa trên dấu của hành động
+    def _sell_stock(self, 
+                    index: int, 
+                    action: int) -> None:
+        # Sell based on the sign of the action
         if self.state[index + STOCK_DIM + 1] > 0:
-            # Cập nhật số dư
+            # Update balance
             self.state[0] += self.state[index + 1] * min(abs(action), self.state[index + STOCK_DIM + 1]) * (1 - TRANSACTION_FEE_PERCENT)
 
             self.state[index + STOCK_DIM + 1] -= min(abs(action), self.state[index + STOCK_DIM + 1])
@@ -70,12 +73,14 @@ class StockEnvTrain(gym.Env):
             pass
 
     
-    def _buy_stock(self, index, action):
-        # Thực hiện hành động mua dựa trên dấu của hành động
+    def _buy_stock(self, 
+                   index: int, 
+                   action: int) -> None:
+        # Buy based on the sign of the action
         available_amount = self.state[0] // self.state[index + 1]
-        # print("available_amount:{}".format(available_amount))
+        # print("available_amount: {}".format(available_amount))
 
-        # Cập nhật số dư
+        # Update balance
         self.state[0] -= self.state[index + 1] * min(available_amount, action) * (1 + TRANSACTION_FEE_PERCENT)
 
         self.state[index + STOCK_DIM + 1] += min(available_amount, action)
@@ -83,7 +88,7 @@ class StockEnvTrain(gym.Env):
         self.cost+=self.state[index + 1] * min(available_amount, action) * TRANSACTION_FEE_PERCENT
         self.trades += 1
         
-    def step(self, actions):
+    def step(self, actions: np.ndarray) -> tuple:
         # print(self.day)
         self.terminal = self.day >= len(self.df.index.unique()) - 1
         # print(actions)
@@ -156,7 +161,7 @@ class StockEnvTrain(gym.Env):
 
         return self.state, self.reward, self.terminal, {}
 
-    def reset(self):
+    def reset(self) -> np.ndarray:
         self.asset_memory = [INITIAL_ACCOUNT_BALANCE]
         self.day = 0
         self.data = self.df.loc[self.day,:]
@@ -175,9 +180,9 @@ class StockEnvTrain(gym.Env):
         # iteration += 1 
         return self.state
     
-    def render(self):
+    def render(self) -> np.ndarray:
         return self.state
 
-    def _seed(self, seed=None):
+    def _seed(self, seed=None) -> list:
         self.np_random, seed = seeding.np_random(seed)
         return [seed]

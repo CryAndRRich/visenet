@@ -21,7 +21,7 @@ def show_main_page():
     )
     st.markdown("## VISENET")
 
-    # Khởi tạo session_state nếu chưa có
+    # Initialize session_state variables if they don't exist
     if "notifications" not in st.session_state:
         st.session_state.notifications = []
     if "unread_count" not in st.session_state:
@@ -29,7 +29,7 @@ def show_main_page():
     if "show_notif" not in st.session_state:
         st.session_state.show_notif = False
 
-    # Hàm thêm thông báo mới
+    # Function to add a new notification
     def add_notification(message: str):
         st.session_state.notifications.insert(0, {
             "message": message,
@@ -38,30 +38,29 @@ def show_main_page():
         })
         st.session_state.unread_count += 1
 
-    # Kiểm tra xem có thông báo chưa đọc không
+    # Check if there are any unread notifications
     has_unread = sum(notif["read"] == False for notif in st.session_state.notifications)
 
-    # Nếu có thông báo chưa đọc -> in đậm
-    expander_title = f"📜 Lịch sử thông báo ({has_unread})" if has_unread != 0 else "📜 Lịch sử thông báo"
+    # If there are unread notifications -> bold the title
+    expander_title = f"📜 Notification history ({has_unread})" if has_unread != 0 else "📜 Notification history"
 
     with st.expander(expander_title, expanded=False):
-        # Tạo 2 cột cho 2 nút
         cols = st.columns([3, 2, 12], gap="small")
 
         with cols[0]:
-            if st.button("Đánh dấu tất cả đã đọc", key="mark_read"):
+            if st.button("Mark as read", key="mark_read"):
                 for n in st.session_state.notifications:
                     n["read"] = True
                 st.session_state.unread_count = 0
                 st.rerun()
                 
         with cols[1]:
-            if st.button("Xóa tất cả", key="clear_notif"):
+            if st.button("Clear all", key="clear_notif"):
                 st.session_state.notifications.clear()
                 st.session_state.unread_count = 0
                 st.rerun()
 
-        # Chỉ render khung nếu có thông báo
+        # Only render the notification box if there are notifications
         if st.session_state.notifications:
             notif_html = "<div class='notif-box'>"
             for notif in st.session_state.notifications:
@@ -71,24 +70,31 @@ def show_main_page():
 
             st.markdown(notif_html, unsafe_allow_html=True)
 
-    # if st.button("Thêm thông báo"):
-    #     add_notification("Đây là thông báo mới!")
-
     cols = st.columns([1, 3])
 
     # ==========================================================
-    # Load và tổng hợp dữ liệu từ file CSV
-    # - Trả về giá đóng cửa của các cổ phiếu
-    # - Tạo dataframe tổng hợp cho biểu đồ nến và các chỉ số kỹ thuật
+    # Load and aggregate data from CSV file
+    # - Return closing prices of stocks
+    # - Create aggregated dataframe for candlestick chart and technical indicators
     # ==========================================================
     @st.cache_resource(show_spinner=False)
     def load_and_aggregate(file_bytes: bytes) -> Tuple[pd.DataFrame, pd.DataFrame]:
-        # Chuyển bytes thành file-like object
+        """
+        Load and aggregate stock data from CSV file bytes
+        
+        Parameters:
+            file_bytes: bytes of the uploaded CSV file
+        
+        Returns:
+            data_close: DataFrame of closing prices with Date as index and tickers as columns
+            df_agg: Aggregated DataFrame with OHLC and technical indicators
+        """
+        # Change bytes to file-like object
         df = pd.read_csv(io.BytesIO(file_bytes))
 
         df["Date"] = pd.to_datetime(df["timestamp"], format="%Y%m%d")
 
-        # Hàm tổng hợp
+        # Functions to aggregate data
         agg_funcs = {
             "open": "first",
             "high": "max",
@@ -117,92 +123,92 @@ def show_main_page():
         try:
             data_close, df_agg = load_and_aggregate(st.session_state["uploaded_file_bytes"])
         except Exception as e:
-            st.error("❌ Lỗi khi đọc file")
+            st.error("❌ Error reading file")
             st.exception(e)
             st.stop()
 
-        # Mặc định hiển thị 7 cổ phiếu đầu tiên
+        # Default to show the first 7 stocks
         STOCKS = sorted(df_agg["ticker"].unique().tolist())
         DEFAULT_STOCKS = STOCKS[:7]
 
     else:
         data_close, df_agg, STOCKS, DEFAULT_STOCKS = None, None, None, None
-        st.warning("⚠️ Chưa có file thông tin mã cổ phiếu nào được tải lên")
+        st.warning("⚠️ No stock data file has been uploaded yet")
 
     def stocks_to_str(stocks):
         return ",".join(stocks)
 
     if STOCKS is not None and DEFAULT_STOCKS is not None:
-        # Khởi tạo tickers_input trong session_state nếu chưa có
+        # Initialize tickers_input in session_state if not exists
         st.session_state.tickers_input = DEFAULT_STOCKS.copy()
             
         # ==========================================================
-        # UI bên trái (bộ chọn cổ phiếu và phạm vi ngày)
+        # Left UI (stock selector and date range)
         left = cols[0].container()
 
         with left:
             tickers = st.multiselect(
-                "Mã cổ phiếu",
+                "Stock Tickers",
                 options=sorted(set(STOCKS) | set(st.session_state.tickers_input)),
                 default=st.session_state.tickers_input,
-                placeholder="Chọn mã cổ phiếu để bắt đầu",
-                help="Bạn có thể nhập mã cổ phiếu thủ công"
+                placeholder="Choose stock tickers to start",
+                help="You can manually input stock tickers"
             )
 
         # ==========================================================
-        # Chọn khoảng thời gian
+        # Choose date range
         # ==========================================================
         with left:
             min_date = data_close.index.min().date()
             max_date = data_close.index.max().date()
 
             option = st.selectbox(
-                "Chọn khoảng thời gian",
-                ["1 tháng", "3 tháng", "6 tháng", 
-                "1 năm", "2 năm", "5 năm", 
-                "Toàn bộ thời gian",
-                "Tự chọn"],
+                "Choose date range",
+                ["1 month", "3 months", "6 months", 
+                "1 year", "2 years", "5 years", 
+                "All time",
+                "Custom"],
                 index=0,
             )
 
-            if option == "1 tháng":
+            if option == "1 month":
                 start_date = max_date - timedelta(days=30)
                 end_date = max_date
-            elif option == "3 tháng":
+            elif option == "3 months":
                 start_date = max_date - timedelta(days=90)
                 end_date = max_date
-            elif option == "6 tháng":
+            elif option == "6 months":
                 start_date = max_date - timedelta(days=180)
                 end_date = max_date
-            elif option == "1 năm":
+            elif option == "1 year":
                 start_date = max_date - timedelta(days=365)
                 end_date = max_date
-            elif option == "2 năm":
+            elif option == "2 years":
                 start_date = max_date - timedelta(days=2*365)
                 end_date = max_date
-            elif option == "5 năm":
+            elif option == "5 years":
                 start_date = max_date - timedelta(days=5*365)
                 end_date = max_date
-            elif option == "Toàn bộ thời gian":
+            elif option == "All time":
                 start_date, end_date = min_date, max_date
             else:
                 start_date = st.date_input(
-                    "Ngày bắt đầu",
+                    "Start date",
                     value=min_date,
                     min_value=min_date,
                     max_value=max_date,
                 )
                 end_date = st.date_input(
-                    "Ngày kết thúc",
+                    "End date",
                     value=max_date,
                     min_value=min_date,
                     max_value=max_date,
                 )
                 if start_date > end_date:
-                    st.error("⚠️ Ngày bắt đầu phải trước ngày kết thúc")
+                    st.error("⚠️ Start date must be before end date")
                     st.stop()
 
-        # Mã cổ phiếu phải là chuỗi không rỗng và viết hoa
+        # Stock tickers must be non-empty strings and uppercase
         tickers = [t.upper() for t in tickers if isinstance(t, str) and t.strip()]
 
         if tickers:
@@ -210,17 +216,17 @@ def show_main_page():
         else:
             st.query_params.pop("stocks", None)
 
-        # Đảm bảo có ít nhất một mã cổ phiếu được chọn
+        # Make sure at least one stock ticker is selected
         if not tickers:
-            left.info("Chọn ít nhất một mã cổ phiểu", icon=":material/info:")
+            left.info("Choose at least one stock ticker", icon=":material/info:")
             st.stop()
 
         # ==========================================================
-        # UI bên phải (biểu đồ và bảng)
+        # Right UI (charts and tables)
         right = cols[1].container()
 
         # ==========================================================
-        # Trường hợp 1: một cổ phiếu -> biểu đồ nến + chỉ số kỹ thuật
+        # Case 1: single stock -> candlestick chart + technical indicators
         # ==========================================================
         if len(tickers) == 1:
             ticker = tickers[0]
@@ -229,19 +235,19 @@ def show_main_page():
             df_t = df_t.loc[start_date:end_date].copy()
 
             if df_t.empty:
-                st.error("Không có thông tin của mã trong khoảng thời gian đã chọn")
+                st.error("No information of the ticker in the selected date range")
                 st.stop()
 
-            # Các cột chỉ số kỹ thuật
+            # Technical indicator columns
             indicator_cols = [c for c in df_t.columns if c not in ["ticker", "open", "high", "low", "close", "vol", "liq"]]
 
-            # Người dùng chọn chỉ số để hiển thị
+            # User can select which indicators to display
             default_inds = []
             selected_inds = right.multiselect(
-                "Các chỉ số kỹ thuật",
+                "Technical Indicators",
                 options=indicator_cols,
                 default=default_inds,
-                placeholder="Chọn các chỉ số kỹ thuật để hiển thị"
+                placeholder="Choose technical indicators to display"
             )
 
             rows = 1 + len(selected_inds)
@@ -273,7 +279,7 @@ def show_main_page():
                 secondary_y=False,
             )
 
-            # Thanh khoản (volume)
+            # Volume as bar chart on secondary y-axis
             if "vol" in df_t.columns:
                 fig.add_trace(
                     go.Bar(
@@ -330,11 +336,11 @@ def show_main_page():
 
             right.plotly_chart(fig, use_container_width=True)
 
-            st.markdown("**Dữ liệu gốc**")
+            st.markdown("## Raw Data")
             st.dataframe(df_t.reset_index(), width="stretch")
 
         # ==========================================================
-        # Trường hợp 2: nhiều cổ phiếu -> biểu đồ giá chuẩn hóa + so sánh với trung bình các mã
+        # Case 2: multiple stocks -> normalized price chart + compare with peer average
         # ==========================================================
         else:
             try:
@@ -342,18 +348,18 @@ def show_main_page():
             except Exception:
                 tickers = [t for t in tickers if t in data_close.columns]
                 if not tickers:
-                    st.error("Không có thông tin của mã nào trong khoảng thời gian đã chọn")
+                    st.error("No information of the tickers in the selected date range")
                     st.stop()
                 data = data_close.loc[start_date:end_date, tickers]
 
             if data.isna().all().any():
                 empty_columns = data.columns[data.isna().all()].tolist()
-                st.error(f"Lỗi khi tải dữ liệu: {', '.join(empty_columns)}.")
+                st.error(f"Error loading data for: {', '.join(empty_columns)}")
                 st.stop()
 
             normalized = data.div(data.iloc[0])
 
-            # Tính cổ phiếu tốt nhất và tệ nhất
+            # Calculate best and worst performing stocks
             latest_norm_values = {normalized[ticker].iat[-1]: ticker for ticker in tickers}
             max_norm_value = max(latest_norm_values.items())
             min_norm_value = min(latest_norm_values.items()) 
@@ -362,12 +368,12 @@ def show_main_page():
             with bottom:
                 mcols = st.columns(2)
                 mcols[0].metric(
-                    "Tốt nhất",
+                    "Best",
                     max_norm_value[1],
                     delta=f"{round((max_norm_value[0] - 1) * 100, 2)}%",
                 )
                 mcols[1].metric(
-                    "Tệ nhất",
+                    "Worst",
                     min_norm_value[1],
                     delta=f"{round((min_norm_value[0] - 1) * 100, 2)}%",
                 )
@@ -386,9 +392,9 @@ def show_main_page():
             )
             right.altair_chart(chart)
 
-            st.markdown("## So sánh với Trung bình các mã")
+            st.markdown("## Compare with Peer Average")
             if len(tickers) <= 1:
-                st.warning("Cần chọn ít nhất 2 mã cổ phiếu để so sánh với Trung bình các mã", icon=":material/info:")
+                st.warning("Need to select at least 2 stock tickers to compare with Peer Average", icon=":material/info:")
                 st.stop()
 
             NUM_COLS = 2
@@ -400,7 +406,7 @@ def show_main_page():
                 plot_data = pd.DataFrame({
                     "Date": normalized.index,
                     ticker: normalized[ticker],
-                    "Trung bình các mã": peer_avg
+                    "Peer Average": peer_avg
                 }).melt(id_vars=["Date"], var_name="Series", value_name="Price")
 
                 chart1 = (
@@ -409,10 +415,10 @@ def show_main_page():
                     .encode(
                         alt.X("Date:T"),
                         alt.Y("Price:Q").scale(zero=False),
-                        alt.Color("Series:N", scale=alt.Scale(domain=[ticker, "Trung bình các mã"], range=["red", "gray"])),
+                        alt.Color("Series:N", scale=alt.Scale(domain=[ticker, "Peer Average"], range=["red", "gray"])),
                         tooltip=["Date", "Series", "Price"],
                     )
-                    .properties(title=f"{ticker} và Trung bình các mã", height=300)
+                    .properties(title=f"{ticker} và Peer Average", height=300)
                 )
 
                 cell = grid_cols[(i * 2) % NUM_COLS].container()
@@ -427,10 +433,10 @@ def show_main_page():
                         alt.Y("Delta:Q").scale(zero=False),
                         tooltip=["Date", "Delta"],
                     )
-                    .properties(title=f"Chênh lệch {ticker} với Trung bình các mã", height=300)
+                    .properties(title=f"Difference of {ticker} vs Peer Average", height=300)
                 )
                 cell2 = grid_cols[(i * 2 + 1) % NUM_COLS].container()
                 cell2.altair_chart(chart2)
 
-            st.markdown("## Dữ liệu gốc")
+            st.markdown("## Raw Data")
             st.dataframe(data.reset_index(), width="stretch")

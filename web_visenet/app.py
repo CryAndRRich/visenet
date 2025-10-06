@@ -17,12 +17,21 @@ BASE_DIR = os.path.dirname(__file__)
 USERS_PATH = os.path.join(BASE_DIR, "json", "users.json")
 FLAG_PATH = os.path.join(BASE_DIR, "json", "login_flag.json")
 
-# Hàm băm mật khẩu
+# Function to hash password
 def hash_password(password: str) -> str:
+    """
+    Hash the password using SHA-256
+    
+    Parameters:
+        password: The plaintext password to hash
+    
+    Returns:
+        str: The hexadecimal representation of the hashed password
+    """
     return hashlib.sha256(password.encode()).hexdigest()
 
-# Hàm tải và lưu user
-def load_users():
+# Function to load users from file
+def load_users() -> dict:
     if os.path.exists(USERS_PATH):
         with open(USERS_PATH, "r", encoding="utf-8") as f:
             try:
@@ -31,8 +40,14 @@ def load_users():
                 return {}
     return {}
 
-# Lưu user vào file
-def save_users(users):
+# Save users to file
+def save_users(users: dict) -> None:
+    """
+    Save the users dictionary to a JSON file
+    
+    Parameters:
+        users: A dictionary mapping usernames to hashed passwords
+    """
     os.makedirs(os.path.dirname(USERS_PATH), exist_ok=True)
     with open(USERS_PATH, "w", encoding="utf-8") as f:
         json.dump(users, f, ensure_ascii=False, indent=2)
@@ -40,24 +55,24 @@ def save_users(users):
 
 _server_thread = None
 
-# Mở server local để xử lý đăng nhập/đăng ký
-def start_local_server(port=8765):
+# Open a local server to handle login/register
+def start_local_server(port: int = 8765) -> None:
     global _server_thread
     if _server_thread is not None:
         return  
 
     class Handler(BaseHTTPRequestHandler):
-        def _set_cors(self):
+        def _set_cors(self) -> None:
             self.send_header("Access-Control-Allow-Origin", "*")
             self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
             self.send_header("Access-Control-Allow-Headers", "Content-Type")
 
-        def do_OPTIONS(self):
+        def do_OPTIONS(self) -> None:
             self.send_response(200)
             self._set_cors()
             self.end_headers()
 
-        def do_POST(self):
+        def do_POST(self) -> None:
             if self.path != "/save_user":
                 self.send_response(404)
                 self.end_headers()
@@ -77,15 +92,14 @@ def start_local_server(port=8765):
             users = load_users()
 
             if typ == "register" and username and password:
-                # thêm user mới
+                # New user registration
                 users[username] = hash_password(password)
                 save_users(users)
-                # coi như đăng nhập luôn
                 with open(FLAG_PATH, "w", encoding="utf-8") as f:
                     json.dump({"username": username}, f)
 
             elif typ == "login" and username and password:
-                # kiểm tra mật khẩu
+                # Check password
                 stored = users.get(username)
                 if stored and stored == hash_password(password):
                     with open(FLAG_PATH, "w", encoding="utf-8") as f:
@@ -97,7 +111,7 @@ def start_local_server(port=8765):
             self.end_headers()
             self.wfile.write(json.dumps({"ok": True}).encode("utf-8"))
 
-        def log_message(self, format, *args):
+        def log_message(self, format, *args) -> None:
             return
 
     server = HTTPServer(("localhost", port), Handler)
@@ -106,8 +120,8 @@ def start_local_server(port=8765):
     _server_thread = thread
 
 
-# Interface HTML cho đăng nhập/đăng ký
-def load_auth_html():
+# Interface HTML for login/register
+def load_auth_html() -> str:
     base_dir = Path(__file__).parent / "components" / "auth_component"
     html_path = base_dir / "auth.html"
     css_path = base_dir / "auth.css"
@@ -117,7 +131,7 @@ def load_auth_html():
     css = css_path.read_text(encoding="utf-8")
     js = js_path.read_text(encoding="utf-8")
 
-    # Thay thế thẻ link/script bằng nội dung inline
+    # Replace link/script tags with inline content
     html = html.replace(
         '<link rel="stylesheet" href="auth.css">',
         f"<style>\n{css}\n</style>"
@@ -128,8 +142,7 @@ def load_auth_html():
     )
     return html
 
-# Hàm chính
-def main():
+def main() -> None:
     st.set_page_config(page_title="ViseNet", layout="wide")
 
     if "local_server_started" not in st.session_state:
@@ -152,33 +165,34 @@ def main():
         except Exception:
             pass
 
-    # đã login thì hiện page chính
+    # If already logged in, show main page
     if st.session_state["logged_in"]:
-        st.sidebar.success(f"Xin chào, {st.session_state['user']} 👋")
+        st.sidebar.success(f"Welcome, {st.session_state['user']} 👋")
 
-        # Nút đăng xuất
-        if st.sidebar.button("Đăng xuất"):
+        # Log out button
+        if st.sidebar.button("Log out"):
             st.session_state["logged_in"] = False
             st.session_state["user"] = ""
             st.rerun()
 
         # Upload file (csv, json, txt)
         uploaded_file = st.sidebar.file_uploader(
-            "Tải lên thông tin các mã cổ phiếu",
+            "Upload stock codes information",
             type=["csv", "json", "txt"]
         )
 
         if uploaded_file is not None:
-            # Lưu file bytes vào session
+            # Save file bytes to session
             st.session_state["uploaded_file_name"] = uploaded_file.name
             st.session_state["uploaded_file_bytes"] = uploaded_file.getvalue()
 
-        # Nhập email để gửi thông báo
-        email_to_notify = st.sidebar.text_input("Nhập email bạn muốn gửi thông báo tới:")
-        if email_to_notify:
-            st.sidebar.write(f"📧 Xác nhận sẽ gửi thông báo tới: {email_to_notify}")
+        # Enter email to notify
+        email_to_notify = st.sidebar.text_input("Enter the email you want to send notifications to:")
 
-        # Hiển thị trang chính
+        if email_to_notify:
+            st.sidebar.write(f"📧 Confirm to send notifications to: {email_to_notify}")
+
+        # Show main page
         show_main_page()
         return
 

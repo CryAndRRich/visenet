@@ -1,5 +1,3 @@
-# !pip install pandas_market_calendars
-
 import numpy as np
 
 import pandas as pd
@@ -10,19 +8,24 @@ from datetime import datetime
 
 def analyze_portfolio(df: pd.DataFrame) -> tuple:
     """
-    Phân tích hiệu suất danh mục đầu tư. Trả về các chỉ số:
-    - Cumulative return
-    - Annualized return
-    - Annualized volatility
-    - Sharpe ratio
-    - Max drawdown
-    - Win rate
+    Analysis of portfolio performance
+    
+    Parameters:
+        df: DataFrame with "account_value" column
+        
+    Returns:
+        cumulative_return: Cumulative return over the period
+        annualized_return: Annualized return
+        annualized_volatility: Annualized volatility
+        sharpe_ratio: Sharpe ratio
+        max_drawdown: Maximum drawdown
+        win_rate: Proportion of days with positive returns
     """
     account_value = df["account_value"].reset_index(drop=True)
     
-    # Lãi hàng ngày
+    # Daily returns
     returns = account_value.pct_change().dropna()
-    N = len(returns)  # số ngày
+    N = len(returns)  # Number of trading days
     
     # Cumulative return
     cumulative_return = (account_value.iloc[-1] / account_value.iloc[0]) - 1
@@ -41,41 +44,49 @@ def analyze_portfolio(df: pd.DataFrame) -> tuple:
     drawdown = (account_value - cummax) / cummax
     max_drawdown = drawdown.min()
     
-    # Win rate (tỷ lệ số ngày return > 0)
+    # Win rate
     win_rate = (returns > 0).mean() if N > 0 else np.nan
 
     return cumulative_return, annualized_return, annualized_volatility, sharpe_ratio, max_drawdown, win_rate
 
-def add_holiday_hold(df, start_date="2016-01-04", end_date=None, market="XNYS"):
+def add_holiday_hold(df: pd.DataFrame, 
+                     start_date: str = "2016-01-04", 
+                     end_date: str = None, 
+                     market: str = "XNYS") -> pd.DataFrame:
     """
-    Chỉnh sửa DataFrame để bao gồm cả ngày lễ và cuối tuần.
-    Các ngày không giao dịch sẽ được điền giá trị bằng phương pháp forward fill
+    Add non-trading days (holidays, weekends) to the DataFrame by forward filling the last available data
+
+    Parameters:
+        df: DataFrame with trading days as index
+        start_date: Start date for the calendar
+        end_date: End date for the calendar (if None, calculate based on df length)
+        market: Market code for pandas_market_calendars (default "XNYS" for NYSE)
+    
+    Returns:
+        df: DataFrame reindexed to include all calendar days with forward fill
     """
     if end_date is None:
         end_date = pd.to_datetime(start_date) + pd.offsets.BDay(len(df)-1)
     
-    # lịch thị trường
+    # Calendar of trading days
     cal = mcal.get_calendar(market)
     schedule = cal.schedule(start_date=start_date, end_date=end_date)
-    trading_days = schedule.index  # các ngày thực sự có giao dịch
+    trading_days = schedule.index  # Days when the market is open
     
-    # gán index = trading days
     df = df.copy()
     df.index = trading_days
     
-    # tạo lịch ngày thường (daily)
+    # Make full date range
     full_range = pd.date_range(start=trading_days[0], end=trading_days[-1], freq="D")
     
-    # reindex và forward fill (bao gồm cả weekend + holiday)
+    # Reindex and forward fill
     df = df.reindex(full_range, method="ffill")
     df.index.name = "date"
     return df
 
 def plot_performance() -> None:
-    """
-    Vẽ biểu đồ hiệu suất danh mục đầu tư
-    """
-    # Danh sách file và label tương ứng
+    """Plot cumulative returns of different strategies"""
+    # List of files and their labels
     files = {
         "A2C": "a2c_account_value_trade.csv",
         "PPO": "ppo_account_value_trade.csv",
@@ -85,7 +96,7 @@ def plot_performance() -> None:
         "VN-INDEX": "benchmark_vnindex.csv"
     }
 
-    # Ngày bắt đầu và kết thúc
+    # Start date for the x-axis
     start_date = datetime(2024, 4, 5)
 
     plt.figure(figsize=(12, 6))
@@ -108,6 +119,7 @@ def plot_performance() -> None:
     plt.show()
 
 def plot_drawdown() -> None:
+    """Plot drawdown periods of the average cumulative return across strategies"""
     files = {
         "VISENET": "ensemble_account_value_trade.csv"
     }
@@ -124,19 +136,19 @@ def plot_drawdown() -> None:
         df[f"cumulative_return_{label}"] = df["account_value"] / df["account_value"].iloc[0] - 1
         all_returns.append(df[["date", f"cumulative_return_{label}"]])
 
-    # Merge vào 1 dataframe chung
+    # Merge into a single DataFrame
     merged = all_returns[0]
     for df in all_returns[1:]:
         merged = merged.merge(df, on="date")
 
     returns_df = merged.set_index("date")
 
-    # Tính drawdown từ trung bình
+    # Calculate drawdown of the average return
     avg_return = returns_df.mean(axis=1)
     cummax = avg_return.cummax()
     drawdown = avg_return / cummax - 1
 
-    # Xác định giai đoạn drawdown
+    # Identify drawdown periods
     periods = []
     in_dd, peak, trough = False, None, None
 
@@ -147,16 +159,15 @@ def plot_drawdown() -> None:
         else:
             if drawdown.iloc[i] < drawdown.iloc[trough]:
                 trough = i
-            # khi drawdown tăng lại (giảm bớt âm), coi như kết thúc 1 giai đoạn giảm
+            # When recovery starts
             if drawdown.iloc[i] > drawdown.iloc[i-1]:
                 periods.append((peak, trough, i))
                 in_dd = False
 
-    # Nếu cuối cùng vẫn đang giảm thì cũng tính
     if in_dd:
         periods.append((peak, trough, len(drawdown)-1))
 
-    # Lọc top theo mức giảm mạnh nhất (slope lớn nhất về âm)
+    # Look for the steepest drawdowns
     def drop_slope(p):
         peak, trough, _ = p
         dd_change = drawdown.iloc[trough] - drawdown.iloc[peak]
@@ -172,7 +183,7 @@ def plot_drawdown() -> None:
         plt.plot(returns_df.index, returns_df[f"cumulative_return_{label}"],
                 label=label, color=colors[label])
 
-    # Highlight vùng giảm mạnh
+    # Highlight drawdown periods
     for peak, trough, recovery in periods_sorted:
         plt.axvspan(drawdown.index[peak], drawdown.index[recovery],
                     color="grey", alpha=0.3)

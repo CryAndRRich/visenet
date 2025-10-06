@@ -9,21 +9,21 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-# Mỗi lần giao dịch tối đa mua/bán 100 cổ phiếu
+# Each time trading a maximum of 100 shares
 HMAX_NORMALIZE = 100
-# Lượng tiền ban đầu
+# Account balance
 INITIAL_ACCOUNT_BALANCE = 1000000
-# Số luợng cổ phiếu trong danh mục đầu tư
+# Number of stocks in our portfolio
 STOCK_DIM = 30
-# Phí giao dịch
+# Transaction fee: 0.1% commission
 TRANSACTION_FEE_PERCENT = 0.001
 
-# Chỉ số biến động: ngưỡng hợp lý 90-150
+# Turbulence threshold: 140 (suggested by Dantas et al. (2020), can be adjusted according to the user's needs)
 # TURBULENCE_THRESHOLD = 140
 REWARD_SCALING = 1e-4
 
 class StockEnvTrade(gym.Env):
-    """Môi trường giao dịch chứng khoán cho OpenAI gym"""
+    """Stock Trading Environment that follows gym interface"""
     metadata = {"render.modes": ["human"]}
 
     def __init__(self, 
@@ -45,12 +45,12 @@ class StockEnvTrade(gym.Env):
         
         self.action_space = spaces.Box(low = -1, high = 1,shape = (STOCK_DIM,)) 
 
-        # Số chiều = 181 = [Luoợng tiền hiện có] + [Giá đóng cửa điều chỉnh của 30 cổ phiếu] + 
-        # [Số cổ phiếu đang sở hữu của 30 cổ phiếu] + [MACD của 30 cổ phiếu] + [RSI của 30 cổ phiếu] + 
-        # [CCI của 30 cổ phiếu] + [ADX của 30 cổ phiếu]
+        # Number of features = 181: = [Current Balance] + [30 Adjusted Close Prices] +
+        # [30 Shares Owned] + [30 MACD] + [30 RSI] + [30 CCI] + [30 ADX]
+
         self.observation_space = spaces.Box(low=0, high=np.inf, shape=(181,))
 
-        # Load dữ liệu
+        # Load data
         self.data = self.df.loc[self.day,:]
         self.terminal = False     
         self.turbulence_threshold = turbulence_threshold
@@ -69,7 +69,7 @@ class StockEnvTrade(gym.Env):
         self.cost = 0
         self.trades = 0
 
-        # Lưu trữ giá trị tài sản theo thời gian
+        # Save all the total asset value in a list
         self.asset_memory = [INITIAL_ACCOUNT_BALANCE]
         self.rewards_memory = []
         # self.reset()
@@ -77,11 +77,13 @@ class StockEnvTrade(gym.Env):
         self.model_name = model_name        
         self.iteration = iteration
 
-    def _sell_stock(self, index, action):
-        # Thực hiện hành động bán dựa trên dấu của hành động
+    def _sell_stock(self, 
+                    index: int, 
+                    action: int) -> None:
+        # Sell based on the sign of the action
         if self.turbulence < self.turbulence_threshold:
             if self.state[index + STOCK_DIM + 1] > 0:
-                # Cập nhật số dư
+                # Update balance
                 self.state[0] += self.state[index + 1] * min(abs(action), self.state[index + STOCK_DIM + 1]) * (1 - TRANSACTION_FEE_PERCENT)
                 self.state[index + STOCK_DIM + 1] -= min(abs(action), self.state[index + STOCK_DIM + 1])
                 self.cost += self.state[index + 1] * min(abs(action), self.state[index + STOCK_DIM + 1]) * TRANSACTION_FEE_PERCENT
@@ -89,9 +91,9 @@ class StockEnvTrade(gym.Env):
             else:
                 pass
         else:
-            # Nếu biến động vượt quá ngưỡng, xóa tất cả các vị trí
+            # If the turbulence exceeds the threshold, liquidate all positions
             if self.state[index + STOCK_DIM + 1] > 0:
-                # Câp nhật số dư
+                # Update balance
                 self.state[0] += self.state[index + 1] * self.state[index + STOCK_DIM + 1] * (1 - TRANSACTION_FEE_PERCENT)
                 self.state[index + STOCK_DIM + 1] = 0
                 self.cost += self.state[index + 1] * self.state[index + STOCK_DIM + 1] * TRANSACTION_FEE_PERCENT
@@ -99,13 +101,15 @@ class StockEnvTrade(gym.Env):
             else:
                 pass
     
-    def _buy_stock(self, index, action):
-        # Thực hiện hành động mua dựa trên dấu của hành động
+    def _buy_stock(self, 
+                   index: int, 
+                   action: int) -> None:
+        # Buy based on the sign of the action
         if self.turbulence< self.turbulence_threshold:
             available_amount = self.state[0] // self.state[index + 1]
             # print("available_amount: {}".format(available_amount))
             
-            # Cập nhật số dư
+            # Update balance
             self.state[0] -= self.state[index + 1] * min(available_amount, action) * (1 + TRANSACTION_FEE_PERCENT)
 
             self.state[index + STOCK_DIM + 1] += min(available_amount, action)
@@ -113,10 +117,10 @@ class StockEnvTrade(gym.Env):
             self.cost += self.state[index + 1] * min(available_amount, action) * TRANSACTION_FEE_PERCENT
             self.trades += 1
         else:
-            # Nếu biến động vượt quá ngưỡng, không mua cổ phiếu
+            # If the turbulence exceeds the threshold, do not buy any stocks
             pass
         
-    def step(self, actions):
+    def step(self, actions: np.ndarray) -> tuple:
         # print(self.day)
         self.terminal = self.day >= len(self.df.index.unique()) - 1
         # print(actions)
@@ -177,7 +181,8 @@ class StockEnvTrade(gym.Env):
             self.data = self.df.loc[self.day,:]         
             self.turbulence = self.data["turbulence"].values[0]
             # print(self.turbulence)
-            # load next state
+
+            # Load next state
             # print("stock_shares: {}".format(self.state[29:]))
             self.state = [self.state[0]] + \
                           self.data.close.values.tolist() + \
@@ -189,7 +194,7 @@ class StockEnvTrade(gym.Env):
             
             end_total_asset = self.state[0] + sum(np.array(self.state[1:(STOCK_DIM + 1)]) * np.array(self.state[(STOCK_DIM + 1):(STOCK_DIM * 2 + 1)]))
             self.asset_memory.append(end_total_asset)
-            #print("end_total_asset: {}".format(end_total_asset))
+            # print("end_total_asset: {}".format(end_total_asset))
             
             self.reward = end_total_asset - begin_total_asset            
             # print("step_reward: {}".format(self.reward))
@@ -199,7 +204,7 @@ class StockEnvTrade(gym.Env):
 
         return self.state, self.reward, self.terminal, {}
 
-    def reset(self):  
+    def reset(self) -> np.ndarray:  
         self.day = 0
         self.data = self.df.loc[self.day, :]
         self.turbulence = 0
@@ -209,7 +214,7 @@ class StockEnvTrade(gym.Env):
         self.rewards_memory = []
 
         if self.initial or self.previous_state is None:
-            # Trường hợp khởi tạo mới hoặc không có previous_state
+            # Case of new initialization or no previous_state
             self.asset_memory = [INITIAL_ACCOUNT_BALANCE]
             self.state = [INITIAL_ACCOUNT_BALANCE] + \
                           self.data.close.values.tolist() + \
@@ -236,7 +241,7 @@ class StockEnvTrade(gym.Env):
                               self.data.cci.values.tolist() + \
                               self.data.adx.values.tolist()
             except Exception as e:
-                print(f"[WARN] previous_state không hợp lệ, reset lại từ đầu. Chi tiết: {e}")
+                print(f"[WARN] previous_state is invalid, resetting to initial state. Details: {e}")
                 self.asset_memory = [INITIAL_ACCOUNT_BALANCE]
                 self.state = [INITIAL_ACCOUNT_BALANCE] + \
                               self.data.close.values.tolist() + \
@@ -248,12 +253,12 @@ class StockEnvTrade(gym.Env):
 
         return self.state
 
-    def render(self):
+    def render(self) -> np.ndarray:
         return self.state
 
-    def _seed(self, seed=None):
+    def _seed(self, seed=None) -> list:
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
     
-    def save_asset_memory(self):
+    def save_asset_memory(self) -> list:
         return self.asset_memory

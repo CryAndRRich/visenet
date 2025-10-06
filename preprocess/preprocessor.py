@@ -6,7 +6,7 @@ import numpy as np
 
 from FiinQuantX import FiinSession
 
-# Đăng nhập vào FiinQuant
+# Login into FiinQuantX
 username = "USERNAME"  
 password = "PASSWORD"
 
@@ -14,16 +14,24 @@ client = FiinSession(username=username, password=password).login()
 fi = client.FiinIndicator()
 
 def compute_indicators(grp: pd.DataFrame) -> pd.DataFrame:
-    """Tính các chỉ số kỹ thuật cho từng nhóm mã chứng khoán"""
+    """
+    Calculate technical indicators for a given stock group
+    
+    Parameters:
+        grp: DataFrame containing stock data for a single ticker
+    
+    Returns:
+        pd.DataFrame: DataFrame with added technical indicators
+    """
     grp = grp.reset_index(drop=True)
 
-    # Giá đóng cửa phiên trước
+    # Close price of the previous day
     grp["prev_close"] = grp["close"].shift(1)
 
     # Log Return
     grp["log_return"] = np.log(grp["close"] / grp["prev_close"])
 
-    # Volatility 20 ngày annualized
+    # Volatility (20-day rolling standard deviation of log returns, annualized)
     grp["vol"] = grp["log_return"].rolling(20, min_periods=1).std() * np.sqrt(252)
 
     # True Range
@@ -50,8 +58,20 @@ def compute_indicators(grp: pd.DataFrame) -> pd.DataFrame:
 
     return grp
 
-def data_split(df, start, end):
-    """Tách dữ liệu thành tập huấn luyện hoặc kiểm tra dựa trên ngày tháng"""
+def data_split(df: pd.DataFrame, 
+               start: str, 
+               end : str) -> pd.DataFrame:
+    """
+    Split the DataFrame based on a date range and reindex it
+    
+    Parameters:
+        df: DataFrame containing stock data
+        start: Start date as a string (inclusive)
+        end: End date as a string (exclusive)
+    
+    Returns:
+        pd.DataFrame: Filtered and reindexed DataFrame
+    """
     data = df[(df.timestamp >= start) & (df.timestamp < end)]
     data=data.sort_values(['timestamp', 'ticker'], ignore_index=True)
     data.index = data.timestamp.factorize()[0]
@@ -59,19 +79,19 @@ def data_split(df, start, end):
 
 
 if __name__ == "__main__":
-    # Đọc dữ liệu từ file CSV
+    # Read raw data from CSV file
     data = pd.read_csv('data/raw_data_all_tickers_1d_30_8_2018_to_30_8_2025.csv')
 
-    # Áp dụng hàm tính chỉ số kỹ thuật cho từng mã chứng khoán
+    # Apply the function to compute technical indicators for each stock ticker
     data = data.groupby("ticker", group_keys=False).apply(compute_indicators)
 
-    # Loại bỏ các cột không cần thiết và các dòng có giá trị NaN
+    # Delete unnecessary columns and rows with NaN values
     data.drop(columns=['volume', 'bu', 'sd', 'fb', 'fs', 'fn', 'log_return', 'prev_close', 'tr'], inplace = True)
     data = data.dropna()
 
-    # Lọc các mã chứng khoán có ít nhất 1500 ngày giao dịch
+    # Filter stock tickers with at least 1500 trading days
     counts = data['ticker'].value_counts()
     data = data[data['ticker'].isin(counts[counts >= 1500].index)]
 
-    # Lưu dữ liệu vào file CSV
+    # Save data to CSV file
     data.to_csv("data/clean_data_1029_tickers_29_11_2018_to_29_8_2025.csv", index=False)

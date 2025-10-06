@@ -2,7 +2,15 @@ import smtplib
 from email.mime.text import MIMEText
 
 def parse_actions(daily_actions: list) -> list:
-    """Chuyển đổi danh sách hành động hàng ngày thành các thông báo, gợi ý"""
+    """
+    Parse daily stock actions into alert messages
+    
+    Parameters:
+        daily_actions: List of dictionaries with keys "date", "stocks", and "action"
+
+    Returns:
+        list: List of alert messages
+    """
     alerts = []
     for entry in daily_actions:
         date = entry["date"]
@@ -12,11 +20,11 @@ def parse_actions(daily_actions: list) -> list:
         signals = []
         for s, a in zip(stocks, actions):
             if a > 0:
-                signals.append(f"Gợi ý: Mua {a} cổ phiếu {s}")
+                signals.append(f"Suggestion: Buy {a} shares of {s}")
             elif a < 0:
-                signals.append(f"Gợi ý: Bán {abs(a)} cổ phiếu {s}")
+                signals.append(f"Suggestion: Sell {abs(a)} shares of {s}")
         if signals:
-            text = f"Ngày {date}\n\n" + "\n".join(signals)
+            text = f"Date {date}\n\n" + "\n".join(signals) 
             alerts.append(text)
 
     return alerts
@@ -26,8 +34,16 @@ def send_email(subject: str,
                to_email: str, 
                from_email: str, 
                app_password: str) -> None:
-    """Gửi email với tiêu đề và nội dung đã cho"""
+    """
+    Send an email notification
     
+    Parameters:
+        subject: Subject of the email
+        body: Body of the email
+        to_email: Recipient's email address
+        from_email: Sender's email address
+        app_password: App password for the sender's email account
+    """
     msg = MIMEText(body, "plain", "utf-8")
     msg["Subject"] = subject
     msg["From"] = from_email

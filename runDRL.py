@@ -6,7 +6,7 @@ from config.config import *
 from models.ensemble import *
 
 def run_model() -> None:
-    """Huấn luyện và đánh giá mô hình DRL trên tập dữ liệu chứng khoán"""
+    """Train and evaluate DRL model on stock dataset"""
     os.makedirs("visenet/results", exist_ok=True)
     file_path = "visenet/data/output/top_30_stocks_after_train.csv"
     data = pd.read_csv(file_path)

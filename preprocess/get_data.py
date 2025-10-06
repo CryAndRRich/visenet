@@ -3,13 +3,13 @@
 
 from FiinQuantX import FiinSession
 
-# Đăng nhập vào FiinQuant
+# Login into FiinQuantX
 username = "USERNAME"  
 password = "PASSWORD"
 
 client = FiinSession(username=username, password=password).login()
 
-# Lấy danh sách mã chứng khoán từ các sàn HOSE, HNX, UPCOM
+# Get the list of stock tickers from HOSE, HNX, UPCOM exchanges
 hose_list = client.TickerList(ticker="VNINDEX") # HOSE
 hnx_list  = client.TickerList(ticker="HNXINDEX") # HNX
 upcom_list = client.TickerList(ticker="UPCOMINDEX") # UPCOM
@@ -19,7 +19,7 @@ all_tickers = list(set(hose_list + hnx_list + upcom_list))
 print("Tổng số mã:", len(all_tickers))
 print(all_tickers)
 
-# Lấy dữ liệu giao dịch hàng ngày cho tất cả các mã chứng khoán
+# Fetch daily trading data for all stock tickers
 data = client.Fetch_Trading_Data(
     realtime = False,
     tickers = all_tickers,
@@ -32,5 +32,5 @@ data = client.Fetch_Trading_Data(
 
 print(data)
 
-# Lưu dữ liệu vào file CSV
+# Save data to CSV file
 data.to_csv("data/raw_data_all_tickers_1d_30_8_2018_to_30_8_2025.csv", index=False)

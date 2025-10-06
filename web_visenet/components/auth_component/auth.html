@@ -4,10 +4,10 @@
     <div class="flip-inner" id="flipInner">
       <div class="side front">
         <div class="logo"><svg width="36" height="36" viewBox="0 0 24 24" fill="#615fff"><path d="M12 2L20 7v10l-8 5-8-5V7l8-5z"/></svg></div>
-        <h2>VISENET - Đăng nhập</h2>
-        <div class="field"><input id="login_user" class="auth-input" placeholder="Tên đăng nhập" /></div>
+        <h2>VISENET - Sign in</h2>
+        <div class="field"><input id="login_user" class="auth-input" placeholder="Username"/></div>
         <div class="field password-wrapper">
-          <input id="login_pass" class="auth-input" type="password" placeholder="Mật khẩu" />
+          <input id="login_pass" class="auth-input" type="password" placeholder="Password"/>
           <span class="toggle-password" onclick="togglePassword('login_pass', this)">👁</span>
         </div>
         <button class="btn" onclick="submitLogin()">Đăng nhập</button>
@@ -16,14 +16,14 @@
 
       <div class="side back">
         <div class="logo"><svg width="36" height="36" viewBox="0 0 24 24" fill="#615fff"><path d="M12 2L20 7v10l-8 5-8-5V7l8-5z"/></svg></div>
-        <h2>VISENET - Đăng ký</h2>
-        <div class="field"><input id="reg_user" class="auth-input" placeholder="Tên đăng nhập" /></div>
+        <h2>VISENET - Sign up</h2>
+        <div class="field"><input id="reg_user" class="auth-input" placeholder="Username"/></div>
         <div class="field password-wrapper">
-          <input id="reg_pass" class="auth-input" type="password" placeholder="Mật khẩu" />
+          <input id="reg_pass" class="auth-input" type="password" placeholder="Password"/>
           <span class="toggle-password" onclick="togglePassword('reg_pass', this)">👁</span>
         </div>
-        <button class="btn" onclick="submitRegister()">Đăng ký</button>
-        <button class="link" onclick="flipTo('front')">🔙 Quay lại đăng nhập</button>
+        <button class="btn" onclick="submitRegister()">Sign up</button>
+        <button class="link" onclick="flipTo('front')">🔙 Back to Sign in</button>
       </div>
     </div>
   </div>

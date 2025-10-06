@@ -9,21 +9,21 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-# Mỗi lần giao dịch tối đa mua/bán 100 cổ phiếu
+# Each time trading a maximum of 100 shares
 HMAX_NORMALIZE = 100
-# Lượng tiền ban đầu
+# Account balance
 INITIAL_ACCOUNT_BALANCE = 1000000
-# Số luợng cổ phiếu trong danh mục đầu tư
+# Number of stocks in our portfolio
 STOCK_DIM = 30
-# Phí giao dịch
+# Transaction fee: 0.1% commission
 TRANSACTION_FEE_PERCENT = 0.001
 
-# Chỉ số biến động: ngưỡng hợp lý 90-150
+# Turbulence threshold: 140 (suggested by Dantas et al. (2020), can be adjusted according to the user's needs)
 # TURBULENCE_THRESHOLD = 140
 REWARD_SCALING = 1e-4
 
 class StockEnvValidation(gym.Env):
-    """Môi trường giao dịch chứng khoán cho OpenAI gym"""
+    """Stock Trading Environment that follows gym interface"""
     metadata = {"render.modes": ["human"]}
 
     def __init__(self, 
@@ -67,11 +67,13 @@ class StockEnvValidation(gym.Env):
         self.iteration=iteration
 
 
-    def _sell_stock(self, index, action):
-        # Thực hiện hành động bán dựa trên dấu của hành động
+    def _sell_stock(self, 
+                    index: int, 
+                    action: int) -> None:
+        # Sell based on the sign of the action
         if self.turbulence < self.turbulence_threshold:
             if self.state[index + STOCK_DIM + 1] > 0:
-                # Câp nhật số dư
+                # Update balance
                 self.state[0] += self.state[index + 1] * min(abs(action), self.state[index + STOCK_DIM + 1]) * (1 - TRANSACTION_FEE_PERCENT)
                 
                 self.state[index + STOCK_DIM + 1] -= min(abs(action), self.state[index + STOCK_DIM + 1])
@@ -80,9 +82,9 @@ class StockEnvValidation(gym.Env):
             else:
                 pass
         else:
-            # Nếu biến động vượt quá ngưỡng, xóa tất cả các vị trí
+            # If the turbulence exceeds the threshold, liquidate all positions
             if self.state[index + STOCK_DIM + 1] > 0:
-                # Cập nhật số dư
+                # Update balance
                 self.state[0] += self.state[index + 1] * self.state[index + STOCK_DIM + 1] * (1 - TRANSACTION_FEE_PERCENT)
                 self.state[index + STOCK_DIM + 1] = 0
                 self.cost += self.state[index + 1] * self.state[index + STOCK_DIM + 1] *  \
@@ -92,12 +94,12 @@ class StockEnvValidation(gym.Env):
                 pass
     
     def _buy_stock(self, index, action):
-        # Thực hiện hành động mua dựa trên dấu của hành động
+        # Buy based on the sign of the action
         if self.turbulence < self.turbulence_threshold:
             available_amount = self.state[0] // self.state[index + 1]
             # print("available_amount: {}".format(available_amount))
             
-            # Cập nhật số dư
+            # Update balance
             self.state[0] -= self.state[index + 1] * min(available_amount, action) * (1 + TRANSACTION_FEE_PERCENT)
 
             self.state[index + STOCK_DIM + 1] += min(available_amount, action)
@@ -105,10 +107,10 @@ class StockEnvValidation(gym.Env):
             self.cost+=self.state[index + 1] * min(available_amount, action) * TRANSACTION_FEE_PERCENT
             self.trades += 1
         else:
-            # Nếu biến động vượt quá ngưỡng, không mua cổ phiếu
+            # If the turbulence exceeds the threshold, do not buy any stocks
             pass
         
-    def step(self, actions):
+    def step(self, actions: np.ndarray) -> tuple:
         # print(self.day)
         self.terminal = self.day >= len(self.df.index.unique()) - 1
         # print(actions)
@@ -187,7 +189,7 @@ class StockEnvValidation(gym.Env):
 
         return self.state, self.reward, self.terminal, {}
 
-    def reset(self):  
+    def reset(self) -> list:  
         self.asset_memory = [INITIAL_ACCOUNT_BALANCE]
         self.day = 0
         self.data = self.df.loc[self.day,:]
@@ -208,12 +210,12 @@ class StockEnvValidation(gym.Env):
             
         return self.state
     
-    def render(self):
+    def render(self) -> list:
         return self.state
     
-    def _seed(self, seed=None):
+    def _seed(self, seed=None) -> list:
         self.np_random, seed = seeding.np_random(seed)
         return [seed]
     
-    def save_asset_memory(self):
+    def save_asset_memory(self) -> list:
         return self.asset_memory
